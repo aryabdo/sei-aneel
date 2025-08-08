@@ -235,14 +235,15 @@ remove_cron_pauta() {
 
 cron_menu_pauta() {
   while true; do
-    echo -e "${CYAN}1) Agendar/Alterar cron${NC}"
-    echo -e "${CYAN}2) Remover cron${NC}"
-    echo -e "${CYAN}3) Voltar${NC}"
+    echo -e "${CYAN}1) Incluir/Editar agendamento${NC}"
+    echo -e "${CYAN}2) Apagar registro${NC}"
+    echo -e "${CYAN}3) Apagar todos agendamentos${NC}"
+    echo -e "${CYAN}4) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) schedule_cron_pauta ;;
       2) remove_cron_pauta ;;
-      3) break ;;
+      4) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
@@ -392,14 +393,15 @@ remove_cron_sorteio() {
 
 cron_menu_sorteio() {
   while true; do
-    echo -e "${CYAN}1) Agendar/Alterar cron${NC}"
-    echo -e "${CYAN}2) Remover cron${NC}"
-    echo -e "${CYAN}3) Voltar${NC}"
+    echo -e "${CYAN}1) Incluir/Editar agendamento${NC}"
+    echo -e "${CYAN}2) Apagar registro${NC}"
+    echo -e "${CYAN}3) Apagar todos agendamentos${NC}"
+    echo -e "${CYAN}4) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) schedule_cron_sorteio ;;
       2) remove_cron_sorteio ;;
-      3) break ;;
+      4) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
@@ -476,14 +478,16 @@ configure_sei() {
     echo -e "${CYAN}2) Configurar SMTP${NC}"
     echo -e "${CYAN}3) Configurar Google Drive${NC}"
     echo -e "${CYAN}4) Configurar tentativas${NC}"
-    echo -e "${CYAN}5) Voltar${NC}"
+    echo -e "${CYAN}5) Gerenciar emails${NC}"
+    echo -e "${CYAN}6) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) config_twocaptcha ;;
       2) config_smtp ;;
       3) config_google ;;
       4) config_exec ;;
-      5) break ;;
+      5) manage_emails ;;
+      6) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
@@ -589,16 +593,23 @@ remove_cron() {
   echo -e "${GREEN}Cron removido.${NC}"
 }
 
+clear_all_cron() {
+  crontab -r
+  echo -e "${GREEN}Todos agendamentos removidos.${NC}"
+}
+
 cron_menu() {
   while true; do
-    echo -e "${CYAN}1) Agendar/Alterar cron${NC}"
-    echo -e "${CYAN}2) Remover cron${NC}"
-    echo -e "${CYAN}3) Voltar${NC}"
+    echo -e "${CYAN}1) Incluir/Editar agendamento${NC}"
+    echo -e "${CYAN}2) Apagar registro${NC}"
+    echo -e "${CYAN}3) Apagar todos agendamentos${NC}"
+    echo -e "${CYAN}4) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) schedule_cron ;;
       2) remove_cron ;;
-      3) break ;;
+      3) clear_all_cron ;;
+      4) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
@@ -616,6 +627,41 @@ view_logs() {
 
 test_connectivity() {
   python3 "$SCRIPT_DIR/test_connectivity.py"
+}
+
+
+backup_menu() {
+  while true; do
+    echo -e "${CYAN}1) Backup local${NC}"
+    echo -e "${CYAN}2) Backup Google Drive${NC}"
+    echo -e "${CYAN}3) Voltar${NC}"
+    read -p $'\e[33mOpção: \e[0m' op
+    case $op in
+      1) python3 "$SCRIPT_DIR/backup_manager.py" local ;;
+      2) python3 "$SCRIPT_DIR/backup_manager.py" gdrive ;;
+      3) break ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
+    esac
+  done
+}
+
+config_menu() {
+  while true; do
+    echo -e "${CYAN}1) Configurações de conexão${NC}"
+    echo -e "${CYAN}2) Teste de conectividade${NC}"
+    echo -e "${CYAN}3) Configurações CRON${NC}"
+    echo -e "${CYAN}4) Backup${NC}"
+    echo -e "${CYAN}5) Voltar${NC}"
+    read -p $'\e[33mOpção: \e[0m' op
+    case $op in
+      1) configure_sei ;;
+      2) test_connectivity ;;
+      3) cron_menu ;;
+      4) backup_menu ;;
+      5) break ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
+    esac
+  done
 }
 
 sei_menu() {
@@ -715,13 +761,15 @@ main_menu() {
     echo -e "${CYAN}1) SEI ANEEL${NC}"
     echo -e "${CYAN}2) Pauta ANEEL${NC}"
     echo -e "${CYAN}3) Sorteio ANEEL${NC}"
-    echo -e "${CYAN}4) Sair${NC}"
+    echo -e "${CYAN}4) Configurações${NC}"
+    echo -e "${CYAN}5) Sair${NC}"
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
       1) sei_menu ;;
       2) pauta_menu ;;
       3) sorteio_menu ;;
-      4) exit 0 ;;
+      4) config_menu ;;
+      5) exit 0 ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
