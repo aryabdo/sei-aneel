@@ -1254,16 +1254,18 @@ def verificar_e_enviar_notificacoes(planilha_handler: PlanilhaHandler,
                     mudancas_detectadas.append({
                         'processo': linha[0],
                         'tipo_mudanca': 'andamento',
-                        'descricao': 'Novos andamentos detectados'
+                        'descricao': 'Novos andamentos detectados',
+                        'dados_linha': dict(zip(cabecalho, linha))
                     })
                     logger.info(f"Mudança de andamento detectada no processo {linha[0]}")
-                
+
                 # Compara documentos
                 elif dados_processo['documentos_nr'] != dados_anteriores.get('documentos_nr', ''):
                     mudancas_detectadas.append({
                         'processo': linha[0],
                         'tipo_mudanca': 'documento',
-                        'descricao': 'Novos documentos detectados'
+                        'descricao': 'Novos documentos detectados',
+                        'dados_linha': dict(zip(cabecalho, linha))
                     })
                     logger.info(f"Mudança de documento detectada no processo {linha[0]}")
             else:
@@ -1271,7 +1273,8 @@ def verificar_e_enviar_notificacoes(planilha_handler: PlanilhaHandler,
                 mudancas_detectadas.append({
                     'processo': linha[0],
                     'tipo_mudanca': 'novo',
-                    'descricao': 'Processo adicionado ao monitoramento'
+                    'descricao': 'Processo adicionado ao monitoramento',
+                    'dados_linha': dict(zip(cabecalho, linha))
                 })
                 logger.info(f"Novo processo detectado: {linha[0]}")
         
@@ -1299,11 +1302,15 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
         smtp_config = config.get('smtp', {})
         email_config = config.get('email', {})
         
-        if not all([smtp_config.get('server'), smtp_config.get('user'), 
+        if not all([smtp_config.get('server'), smtp_config.get('user'),
                    smtp_config.get('password'), email_config.get('recipients')]):
             logger.warning("Configurações de email incompletas, pulando envio")
             return
-        
+
+        if not mudancas and not processos_falha:
+            logger.info("Nenhuma mudança ou falha para notificar, email não enviado")
+            return
+
         # Prepara conteúdo do email
         assunto = f"SEI ANEEL - Relatório de Monitoramento ({datetime.now().strftime('%d/%m/%Y %H:%M')})"
         
@@ -1337,44 +1344,35 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
             
             for mudanca in mudancas:
                 icone = "🔄" if mudanca['tipo_mudanca'] == 'andamento' else "📄" if mudanca['tipo_mudanca'] == 'documento' else "🆕"
-                corpo_html += """
+                detalhes_html = ""
+                if mudanca.get('dados_linha'):
+                    detalhes_html += "<table class=\"detalhes\">"
+                    for campo, valor in mudanca['dados_linha'].items():
+                        detalhes_html += f"<tr><th>{campo}</th><td>{valor}</td></tr>"
+                    detalhes_html += "</table>"
+                corpo_html += f"""
                 <div class="mudanca">
-                    {icone} <span class="processo">{processo}</span><br>
-                    <span class="tipo">{tipo}: {descricao}</span>
+                    {icone} <span class="processo">{mudanca['processo']}</span><br>
+                    <span class="tipo">{mudanca['tipo_mudanca'].title()}: {mudanca['descricao']}</span>
+                    {detalhes_html}
                 </div>
-                """.format(
-                    icone=icone,
-                    processo=mudanca['processo'],
-                    tipo=mudanca['tipo_mudanca'].title(),
-                    descricao=mudanca['descricao']
-                )
+                """
             corpo_html += "</div>"
         
         if processos_falha:
             corpo_html += """
             <div class="section">
-                <h3>⚠️ Processos com Falha ({total})</h3>
+                <h3>⚠️ Processos com erro ou não localizados ({total})</h3>
             """.format(total=len(processos_falha))
-            
+
             for processo in processos_falha:
                 corpo_html += """
                 <div class="falha">
                     ❌ <span class="processo">{processo}</span><br>
-                    <span class="tipo">Falha no processamento - requer atenção manual</span>
+                    <span class="tipo">Erro no processamento ou processo não localizado - requer atenção manual</span>
                 </div>
                 """.format(processo=processo)
             corpo_html += "</div>"
-        
-        if not mudancas and not processos_falha:
-            corpo_html += """
-            <div class="section">
-                <h3>✅ Status do Sistema</h3>
-                <div style="padding: 15px; background-color: #e8f5e8; border-left: 4px solid #4caf50;">
-                    Todos os processos foram processados com sucesso.<br>
-                    Nenhuma mudança detectada nos processos monitorados.
-                </div>
-            </div>
-            """
         
         corpo_html += """
             <div class="section">

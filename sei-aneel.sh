@@ -3,6 +3,7 @@ SCRIPT_DIR="/opt/sei-aneel"
 CONFIG_DIR="$SCRIPT_DIR/config"
 CONFIG_FILE="$CONFIG_DIR/configs.json"
 LOG_DIR="$SCRIPT_DIR/logs"
+REPO_URL="https://github.com/aryabdo/sei-aneel.git"
 
 install_sei() {
   read -p "Caminho do credentials.json: " CRED
@@ -63,6 +64,25 @@ CFG
 
   (crontab -l 2>/dev/null | grep -v 'sei-aneel.py'; echo "0 5,13,16 * * * /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1") | crontab -
   echo "Instalação concluída."
+}
+
+update_sei() {
+  TMP_DIR=$(mktemp -d)
+  git clone "$REPO_URL" "$TMP_DIR"
+  REQS_CHANGED=0
+  if [ ! -f "$SCRIPT_DIR/requirements.txt" ] || \
+     ! cmp -s "$TMP_DIR/requirements.txt" "$SCRIPT_DIR/requirements.txt"; then
+    REQS_CHANGED=1
+  fi
+  sudo cp "$TMP_DIR/sei-aneel.py" "$TMP_DIR/manage_processes.py" \
+          "$TMP_DIR/test_connectivity.py" "$TMP_DIR/sei-aneel.sh" \
+          "$TMP_DIR/requirements.txt" "$SCRIPT_DIR/"
+  if [ $REQS_CHANGED -eq 1 ]; then
+    sudo pip3 install --break-system-packages -r "$SCRIPT_DIR/requirements.txt"
+  fi
+  sudo chown -R "$USER":"$USER" "$SCRIPT_DIR"
+  rm -rf "$TMP_DIR"
+  echo "Atualização concluída."
 }
 
 remove_sei() {
@@ -275,27 +295,30 @@ test_connectivity() {
 menu() {
   while true; do
     echo "1) Instalar"
-    echo "2) Remover"
-    echo "3) Configurar"
-    echo "4) Gerenciar emails"
-    echo "5) Gerenciar processos"
-    echo "6) Testar conectividade"
-    echo "7) Executar forçado"
-    echo "8) Gerenciar cron"
-    echo "9) Ver logs"
-    echo "10) Sair"
+    echo "2) Atualizar"
+    echo "3) Remover"
+    echo "4) Configurar"
+    echo "5) Gerenciar emails"
+    echo "6) Gerenciar processos"
+    echo "7) Testar conectividade"
+    echo "8) Executar forçado"
+    echo "9) Gerenciar cron"
+    echo "10) Ver logs"
+    echo "11) Sair"
     read -p "Opção: " OP
     case $OP in
       1) install_sei ;;
-      2) remove_sei ;;
-      3) configure_sei ;;
-      4) manage_emails ;;
-      5) manage_processes_menu ;;
-      6) test_connectivity ;;
-      7) force_run ;;
-      8) cron_menu ;;
-      9) view_logs ;;
-      10) exit 0 ;;
+      2) update_sei ;;
+      3) remove_sei ;;
+      4) configure_sei ;;
+      5) manage_emails ;;
+      6) manage_processes_menu ;;
+      7) test_connectivity ;;
+      8) force_run ;;
+      9) cron_menu ;;
+      10) view_logs ;;
+      11) exit 0 ;;
+
       *) echo "Opção inválida" ;;
     esac
   done
