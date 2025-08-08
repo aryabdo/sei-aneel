@@ -1,0 +1,7 @@
+gspread
+oauth2client
+selenium
+python-2captcha
+pillow
+pytesseract
+colorama
