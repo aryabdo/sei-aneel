@@ -17,11 +17,9 @@ export SEI_ANEEL_CONFIG="$CONFIG_FILE"
 
 # Diretórios para módulos adicionais
 PAUTA_DIR="/opt/pauta-aneel"
-PAUTA_CONFIG="$PAUTA_DIR/config.env"
 PAUTA_LOG_DIR="$PAUTA_DIR/logs"
 
 SORTEIO_DIR="/opt/sorteio-aneel"
-SORTEIO_CONFIG="$SORTEIO_DIR/config.env"
 SORTEIO_LOG_DIR="$SORTEIO_DIR/logs"
 
 install_sei() {
@@ -102,43 +100,25 @@ remove_sei() {
 }
 
 install_pauta() {
-  read -p "Servidor SMTP: " SMTP_SERVER
-  read -p "Porta SMTP [587]: " SMTP_PORT; SMTP_PORT=${SMTP_PORT:-587}
-  read -p "Usuário SMTP: " SMTP_USER
-  read -s -p "Senha SMTP: " SMTP_PASS; echo
-  read -p "Emails destinatários (separados por vírgula): " EMAILS
-
   sudo rm -rf "$PAUTA_DIR"
   sudo mkdir -p "$PAUTA_LOG_DIR"
   sudo cp pauta_aneel/pauta_aneel.py "$PAUTA_DIR/"
   sudo cp requirements.txt "$PAUTA_DIR/"
-  sudo cp pauta_aneel/keywords.example "$PAUTA_DIR/.pauta_aneel_keywords"
   sudo chown -R "$USER":"$USER" "$PAUTA_DIR"
 
   sudo apt-get update
   sudo apt-get install -y python3 python3-pip
   sudo pip3 install --break-system-packages -r "$PAUTA_DIR/requirements.txt"
 
-  cat <<CFG > "$PAUTA_CONFIG"
-SMTP_SERVER=$SMTP_SERVER
-SMTP_PORT=$SMTP_PORT
-SMTP_USER=$SMTP_USER
-SMTP_PASSWORD=$SMTP_PASS
-EMAIL_TO="$EMAILS"
-CFG
-
-  cat <<'RUN' > "$PAUTA_DIR/run.sh"
+  cat <<RUN > "$PAUTA_DIR/run.sh"
 #!/bin/bash
-DIR="$(dirname "$0")"
-cd "$DIR"
-set -a
-source "$DIR/config.env"
-PAUTA_DATA_DIR="$DIR"
-PAUTA_LOG_FILE="$DIR/logs/pauta_aneel.log"
-XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/tmp}
-set +a
-python3 "$DIR/pauta_aneel.py" "$@"
-
+DIR="\$(dirname "$0")"
+cd "\$DIR"
+export SEI_ANEEL_CONFIG="$CONFIG_FILE"
+PAUTA_DATA_DIR="\$DIR"
+PAUTA_LOG_FILE="\$DIR/logs/pauta_aneel.log"
+XDG_RUNTIME_DIR=\${XDG_RUNTIME_DIR:-/tmp}
+python3 "\$DIR/pauta_aneel.py" "\$@"
 RUN
   chmod +x "$PAUTA_DIR/run.sh"
 
@@ -150,8 +130,7 @@ update_pauta() {
   TMP_DIR=$(mktemp -d)
   git clone "$REPO_URL" "$TMP_DIR" >/dev/null 2>&1
   sudo cp "$TMP_DIR/pauta_aneel/pauta_aneel.py" "$PAUTA_DIR/"
-  sudo cp "$TMP_DIR/pauta_aneel/keywords.example" "$PAUTA_DIR/"
-  sudo chown "$USER":"$USER" "$PAUTA_DIR/pauta_aneel.py" "$PAUTA_DIR/keywords.example"
+  sudo chown "$USER":"$USER" "$PAUTA_DIR/pauta_aneel.py"
   rm -rf "$TMP_DIR"
   echo -e "${GREEN}Atualização concluída.${NC}"
 }
@@ -162,74 +141,6 @@ remove_pauta() {
   echo -e "${GREEN}Remoção concluída.${NC}"
 }
 
-config_pauta() {
-  read -p "Servidor SMTP: " S
-  read -p "Porta [587]: " P; P=${P:-587}
-  read -p "Usuário: " U
-  read -s -p "Senha: " PW; echo
-  read -p "Emails destinatários (separados por vírgula): " EM
-  cat > "$PAUTA_CONFIG" <<CFG
-SMTP_SERVER=$S
-SMTP_PORT=$P
-SMTP_USER=$U
-SMTP_PASSWORD=$PW
-EMAIL_TO="$EM"
-CFG
-}
-
-list_emails_pauta() {
-  grep '^EMAIL_TO=' "$PAUTA_CONFIG" | cut -d'=' -f2- | tr -d '"' | tr ',' '\n'
-}
-
-add_email_pauta() {
-  read -p "Email para adicionar: " EM
-  CURRENT=$(grep '^EMAIL_TO=' "$PAUTA_CONFIG" | cut -d'=' -f2- | tr -d '"')
-  [[ -z "$CURRENT" ]] && NEW="$EM" || NEW="$CURRENT,$EM"
-  sed -i "s|^EMAIL_TO=.*|EMAIL_TO=\"$NEW\"|" "$PAUTA_CONFIG"
-}
-
-remove_email_pauta() {
-  read -p "Email para remover: " EM
-  CURRENT=$(grep '^EMAIL_TO=' "$PAUTA_CONFIG" | cut -d'=' -f2- | tr -d '"')
-  IFS=',' read -ra ADDR <<< "$CURRENT"
-  NEW=""
-  for e in "${ADDR[@]}"; do
-    [[ "$e" != "$EM" ]] && NEW="${NEW}${NEW:+,}$e"
-  done
-  sed -i "s|^EMAIL_TO=.*|EMAIL_TO=\"$NEW\"|" "$PAUTA_CONFIG"
-}
-
-manage_emails_pauta() {
-  while true; do
-    echo -e "${CYAN}1) Listar${NC}"
-    echo -e "${CYAN}2) Adicionar${NC}"
-    echo -e "${CYAN}3) Remover${NC}"
-    echo -e "${CYAN}4) Voltar${NC}"
-    read -p $'\e[33mOpção: \e[0m' op
-    case $op in
-      1) list_emails_pauta ;;
-      2) add_email_pauta ;;
-      3) remove_email_pauta ;;
-      4) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
-    esac
-  done
-}
-
-config_pauta_menu() {
-  while true; do
-    echo -e "${CYAN}1) Configurar SMTP${NC}"
-    echo -e "${CYAN}2) Gerenciar emails${NC}"
-    echo -e "${CYAN}3) Voltar${NC}"
-    read -p $'\e[33mOpção: \e[0m' op
-    case $op in
-      1) config_pauta ;;
-      2) manage_emails_pauta ;;
-      3) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
-    esac
-  done
-}
 
 force_run_pauta() {
   log_file="$PAUTA_LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
@@ -287,43 +198,25 @@ view_logs_pauta() {
 }
 
 install_sorteio() {
-  read -p "Servidor SMTP: " SMTP_SERVER
-  read -p "Porta SMTP [587]: " SMTP_PORT; SMTP_PORT=${SMTP_PORT:-587}
-  read -p "Usuário SMTP: " SMTP_USER
-  read -s -p "Senha SMTP: " SMTP_PASS; echo
-  read -p "Emails destinatários (separados por vírgula): " EMAILS
-
   sudo rm -rf "$SORTEIO_DIR"
   sudo mkdir -p "$SORTEIO_LOG_DIR"
   sudo cp sorteio_aneel/sorteio_aneel.py "$SORTEIO_DIR/"
   sudo cp requirements.txt "$SORTEIO_DIR/"
-  sudo cp sorteio_aneel/keywords.example "$SORTEIO_DIR/.sorteio_aneel_keywords"
   sudo chown -R "$USER":"$USER" "$SORTEIO_DIR"
 
   sudo apt-get update
   sudo apt-get install -y python3 python3-pip
   sudo pip3 install --break-system-packages -r "$SORTEIO_DIR/requirements.txt"
 
-  cat <<CFG > "$SORTEIO_CONFIG"
-SMTP_SERVER=$SMTP_SERVER
-SMTP_PORT=$SMTP_PORT
-SMTP_USER=$SMTP_USER
-SMTP_PASSWORD=$SMTP_PASS
-EMAIL_TO="$EMAILS"
-CFG
-
-  cat <<'RUN' > "$SORTEIO_DIR/run.sh"
+  cat <<RUN > "$SORTEIO_DIR/run.sh"
 #!/bin/bash
 
-DIR="$(dirname "$0")"
-cd "$DIR"
-set -a
-source "$DIR/config.env"
-SORTEIO_DATA_DIR="$DIR"
-SORTEIO_LOG_FILE="$DIR/logs/sorteio_aneel.log"
-set +a
-python3 "$DIR/sorteio_aneel.py" "$@"
-
+DIR="\$(dirname "$0")"
+cd "\$DIR"
+export SEI_ANEEL_CONFIG="$CONFIG_FILE"
+SORTEIO_DATA_DIR="\$DIR"
+SORTEIO_LOG_FILE="\$DIR/logs/sorteio_aneel.log"
+python3 "\$DIR/sorteio_aneel.py" "\$@"
 RUN
   chmod +x "$SORTEIO_DIR/run.sh"
 
@@ -335,8 +228,7 @@ update_sorteio() {
   TMP_DIR=$(mktemp -d)
   git clone "$REPO_URL" "$TMP_DIR" >/dev/null 2>&1
   sudo cp "$TMP_DIR/sorteio_aneel/sorteio_aneel.py" "$SORTEIO_DIR/"
-  sudo cp "$TMP_DIR/sorteio_aneel/keywords.example" "$SORTEIO_DIR/"
-  sudo chown "$USER":"$USER" "$SORTEIO_DIR/sorteio_aneel.py" "$SORTEIO_DIR/keywords.example"
+  sudo chown "$USER":"$USER" "$SORTEIO_DIR/sorteio_aneel.py"
   rm -rf "$TMP_DIR"
   echo -e "${GREEN}Atualização concluída.${NC}"
 }
@@ -376,7 +268,7 @@ install_dependencies_only() {
   sudo apt-get install -y python3 python3-pip tesseract-ocr chromium-browser chromium-chromedriver
   sudo pip3 install --break-system-packages -r requirements.txt
   sudo mkdir -p "$CONFIG_DIR" "$LOG_DIR" "$PAUTA_DIR" "$PAUTA_LOG_DIR" "$SORTEIO_DIR" "$SORTEIO_LOG_DIR"
-  sudo touch "$CONFIG_FILE" "$PAUTA_CONFIG" "$SORTEIO_CONFIG"
+  sudo touch "$CONFIG_FILE"
   sudo chown -R "$USER":"$USER" "$SCRIPT_DIR" "$PAUTA_DIR" "$SORTEIO_DIR"
   echo -e "${GREEN}Dependências instaladas.${NC}"
 }
@@ -415,74 +307,6 @@ installation_menu() {
   done
 }
 
-config_sorteio() {
-  read -p "Servidor SMTP: " S
-  read -p "Porta [587]: " P; P=${P:-587}
-  read -p "Usuário: " U
-  read -s -p "Senha: " PW; echo
-  read -p "Emails destinatários (separados por vírgula): " EM
-  cat > "$SORTEIO_CONFIG" <<CFG
-SMTP_SERVER=$S
-SMTP_PORT=$P
-SMTP_USER=$U
-SMTP_PASSWORD=$PW
-EMAIL_TO="$EM"
-CFG
-}
-
-list_emails_sorteio() {
-  grep '^EMAIL_TO=' "$SORTEIO_CONFIG" | cut -d'=' -f2- | tr -d '"' | tr ',' '\n'
-}
-
-add_email_sorteio() {
-  read -p "Email para adicionar: " EM
-  CURRENT=$(grep '^EMAIL_TO=' "$SORTEIO_CONFIG" | cut -d'=' -f2- | tr -d '"')
-  [[ -z "$CURRENT" ]] && NEW="$EM" || NEW="$CURRENT,$EM"
-  sed -i "s|^EMAIL_TO=.*|EMAIL_TO=\"$NEW\"|" "$SORTEIO_CONFIG"
-}
-
-remove_email_sorteio() {
-  read -p "Email para remover: " EM
-  CURRENT=$(grep '^EMAIL_TO=' "$SORTEIO_CONFIG" | cut -d'=' -f2- | tr -d '"')
-  IFS=',' read -ra ADDR <<< "$CURRENT"
-  NEW=""
-  for e in "${ADDR[@]}"; do
-    [[ "$e" != "$EM" ]] && NEW="${NEW}${NEW:+,}$e"
-  done
-  sed -i "s|^EMAIL_TO=.*|EMAIL_TO=\"$NEW\"|" "$SORTEIO_CONFIG"
-}
-
-manage_emails_sorteio() {
-  while true; do
-    echo -e "${CYAN}1) Listar${NC}"
-    echo -e "${CYAN}2) Adicionar${NC}"
-    echo -e "${CYAN}3) Remover${NC}"
-    echo -e "${CYAN}4) Voltar${NC}"
-    read -p $'\e[33mOpção: \e[0m' op
-    case $op in
-      1) list_emails_sorteio ;;
-      2) add_email_sorteio ;;
-      3) remove_email_sorteio ;;
-      4) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
-    esac
-  done
-}
-
-config_sorteio_menu() {
-  while true; do
-    echo -e "${CYAN}1) Configurar SMTP${NC}"
-    echo -e "${CYAN}2) Gerenciar emails${NC}"
-    echo -e "${CYAN}3) Voltar${NC}"
-    read -p $'\e[33mOpção: \e[0m' op
-    case $op in
-      1) config_sorteio ;;
-      2) manage_emails_sorteio ;;
-      3) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
-    esac
-  done
-}
 
 force_run_sorteio() {
   log_file="$SORTEIO_LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
@@ -776,15 +600,11 @@ backup_menu() {
 connection_config_menu() {
   while true; do
     echo -e "${CYAN}1) SEI ANEEL${NC}"
-    echo -e "${CYAN}2) Pauta ANEEL${NC}"
-    echo -e "${CYAN}3) Sorteio ANEEL${NC}"
-    echo -e "${CYAN}4) Voltar${NC}"
+    echo -e "${CYAN}2) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) configure_sei ;;
-      2) config_pauta_menu ;;
-      3) config_sorteio_menu ;;
-      4) break ;;
+      2) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
@@ -838,7 +658,6 @@ sei_menu() {
 
 # Menu para Pauta ANEEL
 pauta_menu() {
-  CONFIG_FILE="$PAUTA_CONFIG"
   LOG_DIR="$PAUTA_LOG_DIR"
   while true; do
     echo -e "${CYAN}1) Instalar${NC}"
@@ -864,7 +683,6 @@ pauta_menu() {
 
 # Menu para Sorteio ANEEL
 sorteio_menu() {
-  CONFIG_FILE="$SORTEIO_CONFIG"
   LOG_DIR="$SORTEIO_LOG_DIR"
   while true; do
     echo -e "${CYAN}1) Instalar${NC}"
