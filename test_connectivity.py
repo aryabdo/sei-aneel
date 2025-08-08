@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-import json
-import smtplib
-import urllib.request
-import json
-import smtplib
-from pathlib import Path
-import sys
+"""Verifica a conectividade com serviços externos usados pelo projeto."""
 
-# Assegura que o diretório raiz esteja no PYTHONPATH para importar config_loader
+import json
+import smtplib
+import sys
+import urllib.request
+from pathlib import Path
+
+# Garante que o diretório raiz do projeto esteja no ``PYTHONPATH``
+# para permitir a importação de ``config_loader`` quando o script
+# for executado a partir de locais diferentes.
 ROOT_DIR = Path(__file__).resolve().parent
-if not (ROOT_DIR / "config_loader.py").exists():
-    ROOT_DIR = ROOT_DIR.parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+sys.path.insert(0, str(ROOT_DIR))
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
