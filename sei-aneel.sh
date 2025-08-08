@@ -3,6 +3,7 @@ SCRIPT_DIR="/opt/sei-aneel"
 CONFIG_DIR="$SCRIPT_DIR/config"
 CONFIG_FILE="$CONFIG_DIR/configs.json"
 LOG_DIR="$SCRIPT_DIR/logs"
+REPO_URL="https://github.com/aryabdo/sei-aneel.git"
 
 install_sei() {
   read -p "Caminho do credentials.json: " CRED
@@ -63,6 +64,15 @@ CFG
 
   (crontab -l 2>/dev/null | grep -v 'sei-aneel.py'; echo "0 5,13,16 * * * /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1") | crontab -
   echo "Instalação concluída."
+}
+
+update_sei() {
+  TMP_DIR=$(mktemp -d)
+  git clone "$REPO_URL" "$TMP_DIR" >/dev/null 2>&1
+  sudo cp "$TMP_DIR/sei-aneel.py" "$TMP_DIR/sei-aneel.sh" "$SCRIPT_DIR/"
+  sudo chown "$USER":"$USER" "$SCRIPT_DIR/sei-aneel.py" "$SCRIPT_DIR/sei-aneel.sh"
+  rm -rf "$TMP_DIR"
+  echo "Atualização concluída."
 }
 
 remove_sei() {
@@ -216,13 +226,19 @@ manage_processes_menu() {
 }
 
 force_run() {
-  log_file="$LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
-  read -p "Número(s) de processo específico(s) (enter para todos): " PROC
-  if [ -z "$PROC" ]; then
-    python3 "$SCRIPT_DIR/sei-aneel.py" | tee "$log_file"
-  else
-    python3 "$SCRIPT_DIR/sei-aneel.py" --processo $PROC | tee "$log_file"
-  fi
+  while true; do
+    echo "1) Executar todos os processos"
+    echo "2) Executar processos específicos"
+    echo "3) Voltar"
+    read -p "Opção: " op
+    log_file="$LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
+    case $op in
+      1) python3 "$SCRIPT_DIR/sei-aneel.py" | tee "$log_file" ;;
+      2) read -p "Número(s) de processo (separados por espaço): " PROC; python3 "$SCRIPT_DIR/sei-aneel.py" --processo $PROC | tee "$log_file" ;;
+      3) break ;;
+      *) echo "Opção inválida" ;;
+    esac
+  done
 }
 
 schedule_cron() {
@@ -232,6 +248,36 @@ schedule_cron() {
   echo "Cron agendado."
 }
 
+remove_cron() {
+  crontab -l 2>/dev/null | grep -v 'sei-aneel.py' | crontab -
+  echo "Cron removido."
+}
+
+cron_menu() {
+  while true; do
+    echo "1) Agendar/Alterar cron"
+    echo "2) Remover cron"
+    echo "3) Voltar"
+    read -p "Opção: " op
+    case $op in
+      1) schedule_cron ;;
+      2) remove_cron ;;
+      3) break ;;
+      *) echo "Opção inválida" ;;
+    esac
+  done
+}
+
+view_logs() {
+  if [ -d "$LOG_DIR" ]; then
+    ls -1 "$LOG_DIR"
+    read -p "Arquivo de log para visualizar: " LOGF
+    [ -f "$LOG_DIR/$LOGF" ] && less "$LOG_DIR/$LOGF" || echo "Arquivo não encontrado."
+  else
+    echo "Diretório de logs inexistente."
+  fi
+}
+
 test_connectivity() {
   python3 "$SCRIPT_DIR/test_connectivity.py"
 }
@@ -239,25 +285,29 @@ test_connectivity() {
 menu() {
   while true; do
     echo "1) Instalar"
-    echo "2) Remover"
-    echo "3) Configurar"
-    echo "4) Gerenciar emails"
-    echo "5) Gerenciar processos"
-    echo "6) Testar conectividade"
-    echo "7) Executar forçado"
-    echo "8) Agendar via cron"
-    echo "9) Sair"
+    echo "2) Atualizar"
+    echo "3) Remover"
+    echo "4) Configurar"
+    echo "5) Gerenciar emails"
+    echo "6) Gerenciar processos"
+    echo "7) Testar conectividade"
+    echo "8) Executar forçado"
+    echo "9) Gerenciar cron"
+    echo "10) Ver logs"
+    echo "11) Sair"
     read -p "Opção: " OP
     case $OP in
       1) install_sei ;;
-      2) remove_sei ;;
-      3) configure_sei ;;
-      4) manage_emails ;;
-      5) manage_processes_menu ;;
-      6) test_connectivity ;;
-      7) force_run ;;
-      8) schedule_cron ;;
-      9) exit 0 ;;
+      2) update_sei ;;
+      3) remove_sei ;;
+      4) configure_sei ;;
+      5) manage_emails ;;
+      6) manage_processes_menu ;;
+      7) test_connectivity ;;
+      8) force_run ;;
+      9) cron_menu ;;
+      10) view_logs ;;
+      11) exit 0 ;;
       *) echo "Opção inválida" ;;
     esac
   done
