@@ -4,6 +4,13 @@ from datetime import datetime
 from pathlib import Path
 import zipfile
 
+# Assegura acesso ao módulo config_loader quando executado de qualquer local
+ROOT_DIR = Path(__file__).resolve().parent
+if not (ROOT_DIR / "config_loader.py").exists():
+    ROOT_DIR = ROOT_DIR.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from config_loader import load_config, DEFAULT_CONFIG_PATH
 
 def _zip_dirs(base_dir: Path, target_dirs: list[Path]) -> Path:

@@ -13,6 +13,15 @@ import unicodedata
 import tempfile
 import subprocess
 import json
+from pathlib import Path
+
+# Assegura que o diretório raiz do projeto esteja no PYTHONPATH
+ROOT_DIR = Path(__file__).resolve().parent
+if not (ROOT_DIR / "config_loader.py").exists():
+    ROOT_DIR = ROOT_DIR.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from config_loader import load_config
 
 # Diretório de dados e arquivos de log
