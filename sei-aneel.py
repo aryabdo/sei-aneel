@@ -718,7 +718,7 @@ class SEIAneel:
                 if len(tds) == 2:
                     chave = tds[0].text.strip().replace(":", "")
                     valor = tds[1].text.strip().replace("\n", " ").replace("\r", "")
-                    
+
                     # Tratamento especial para interessados
                     if chave.lower() == "interessados":
                         subelementos = tds[1].find_elements(By.XPATH, ".//*")
@@ -729,8 +729,27 @@ class SEIAneel:
                                 if texto and texto not in lista_interessados:
                                     lista_interessados.append(texto)
                             valor = "; ".join(lista_interessados)
-                    
+
                     dados[chave] = valor
+
+            # Garantir captura da coluna Interessados
+            if 'Interessados' not in dados:
+                try:
+                    celula = tabela.find_element(By.XPATH, ".//td[@width='20%'][contains(normalize-space(), 'Interessados')]")
+                    valor_td = celula.find_element(By.XPATH, "following-sibling::td[1]")
+                    subelementos = valor_td.find_elements(By.XPATH, ".//*")
+                    if subelementos:
+                        lista_interessados = []
+                        for elem in subelementos:
+                            texto = elem.text.strip()
+                            if texto and texto not in lista_interessados:
+                                lista_interessados.append(texto)
+                        valor = "; ".join(lista_interessados)
+                    else:
+                        valor = valor_td.text.strip().replace("\n", " ").replace("\r", "")
+                    dados['Interessados'] = valor
+                except Exception as e:
+                    self.logger.error(f"Erro ao extrair interessados: {e}")
         except Exception as e:
             self.logger.error(f"Erro ao extrair detalhes do processo: {e}")
         
@@ -1346,7 +1365,7 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
                 .tipo {{ color: #666; font-style: italic; }}
                 .timestamp {{ color: #888; font-size: 0.9em; }}
                 table.detalhes {{ border-collapse: collapse; margin-top: 5px; }}
-                table.detalhes th, table.detalhes td {{ border: 1px solid #ddd; padding: 4px 8px; text-align: left; font-size: 0.9em; }}
+                table.detalhes th, table.detalhes td {{ border: 1px solid #ddd; padding: 4px 8px; text-align: left; vertical-align: top; font-size: 0.9em; }}
                 table.detalhes th {{ background-color: #f0f0f0; }}
             </style>
         </head>
@@ -1373,9 +1392,8 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
                         f"<tr><th>Tipo do processo</th><td>{dados.get('Tipo do processo', '')}</td></tr>",
                         f"<tr><th>Interessados</th><td>{dados.get('Interessados', '')}</td></tr>",
                     ]
-
+                    
                     tabela_basica = f"<table class=\"detalhes\">{''.join(linhas)}</table>"
-
                     doc_campos = ['Documento', 'Tipo do documento', 'Data do documento', 'Data de Inclusão', 'Unidade']
                     and_campos = ['Data/Hora do Andamento', 'Unidade do Andamento', 'Descrição do Andamento']
                     docs = organizar_colunas(dados, doc_campos, 'Data de Inclusão')
