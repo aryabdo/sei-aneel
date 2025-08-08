@@ -1310,6 +1310,7 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
         if not mudancas and not processos_falha:
             logger.info("Nenhuma mudança ou falha para notificar, email não enviado")
             return
+          
         def organizar_colunas(dados: Dict[str, str], campos: List[str], chave_ord: str) -> Dict[str, str]:
             listas = {c: [s.strip() for s in dados.get(c, '').splitlines() if s.strip()] for c in campos}
             total = max((len(v) for v in listas.values()), default=0)
@@ -1327,6 +1328,7 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
 
             registros.sort(key=lambda r: parse_data(r.get(chave_ord, '')), reverse=True)
             return {c: '<br>'.join(r[c] for r in registros if r[c]) for c in campos}
+
         # Prepara conteúdo do email
         assunto = f"SEI ANEEL - Relatório de Monitoramento ({datetime.now().strftime('%d/%m/%Y %H:%M')})"
         
@@ -1425,26 +1427,31 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
         """
         
         # Configura e envia email
+        recipients = [r.strip() for r in email_config.get('recipients', []) if r.strip()]
+        if not recipients:
+            logger.warning("Nenhum destinatário de email configurado, pulando envio")
+            return
+
         msg = MIMEMultipart('alternative')
         msg['Subject'] = assunto
         msg['From'] = smtp_config['user']
-        msg['To'] = ', '.join(email_config['recipients'])
-        
+        msg['To'] = ', '.join(recipients)
+
         # Adiciona versão HTML
         parte_html = MIMEText(corpo_html, 'html', 'utf-8')
         msg.attach(parte_html)
-        
+
         # Envia email
         server = smtplib.SMTP(smtp_config['server'], smtp_config.get('port', 587))
         if smtp_config.get('starttls', False):
             server.starttls()
         server.login(smtp_config['user'], smtp_config['password'])
-        
+
         text = msg.as_string()
-        server.sendmail(smtp_config['user'], email_config['recipients'], text)
+        server.sendmail(smtp_config['user'], recipients, text)
         server.quit()
-        
-        logger.info(f"Email de notificação enviado para {len(email_config['recipients'])} destinatário(s)")
+
+        logger.info(f"Email de notificação enviado para {len(recipients)} destinatário(s)")
         
     except Exception as e:
         logger.error(f"Erro ao enviar email de notificação: {e}")
