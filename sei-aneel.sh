@@ -216,13 +216,19 @@ manage_processes_menu() {
 }
 
 force_run() {
-  log_file="$LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
-  read -p "Número(s) de processo específico(s) (enter para todos): " PROC
-  if [ -z "$PROC" ]; then
-    python3 "$SCRIPT_DIR/sei-aneel.py" | tee "$log_file"
-  else
-    python3 "$SCRIPT_DIR/sei-aneel.py" --processo $PROC | tee "$log_file"
-  fi
+  while true; do
+    echo "1) Executar todos os processos"
+    echo "2) Executar processos específicos"
+    echo "3) Voltar"
+    read -p "Opção: " op
+    log_file="$LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
+    case $op in
+      1) python3 "$SCRIPT_DIR/sei-aneel.py" | tee "$log_file" ;;
+      2) read -p "Número(s) de processo (separados por espaço): " PROC; python3 "$SCRIPT_DIR/sei-aneel.py" --processo $PROC | tee "$log_file" ;;
+      3) break ;;
+      *) echo "Opção inválida" ;;
+    esac
+  done
 }
 
 schedule_cron() {
@@ -230,6 +236,36 @@ schedule_cron() {
   read -p "Horas (ex: 5,13,16): " H
   (crontab -l 2>/dev/null | grep -v 'sei-aneel.py'; echo "0 $H * * $D /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1") | crontab -
   echo "Cron agendado."
+}
+
+remove_cron() {
+  crontab -l 2>/dev/null | grep -v 'sei-aneel.py' | crontab -
+  echo "Cron removido."
+}
+
+cron_menu() {
+  while true; do
+    echo "1) Agendar/Alterar cron"
+    echo "2) Remover cron"
+    echo "3) Voltar"
+    read -p "Opção: " op
+    case $op in
+      1) schedule_cron ;;
+      2) remove_cron ;;
+      3) break ;;
+      *) echo "Opção inválida" ;;
+    esac
+  done
+}
+
+view_logs() {
+  if [ -d "$LOG_DIR" ]; then
+    ls -1 "$LOG_DIR"
+    read -p "Arquivo de log para visualizar: " LOGF
+    [ -f "$LOG_DIR/$LOGF" ] && less "$LOG_DIR/$LOGF" || echo "Arquivo não encontrado."
+  else
+    echo "Diretório de logs inexistente."
+  fi
 }
 
 test_connectivity() {
@@ -245,8 +281,9 @@ menu() {
     echo "5) Gerenciar processos"
     echo "6) Testar conectividade"
     echo "7) Executar forçado"
-    echo "8) Agendar via cron"
-    echo "9) Sair"
+    echo "8) Gerenciar cron"
+    echo "9) Ver logs"
+    echo "10) Sair"
     read -p "Opção: " OP
     case $OP in
       1) install_sei ;;
@@ -256,8 +293,9 @@ menu() {
       5) manage_processes_menu ;;
       6) test_connectivity ;;
       7) force_run ;;
-      8) schedule_cron ;;
-      9) exit 0 ;;
+      8) cron_menu ;;
+      9) view_logs ;;
+      10) exit 0 ;;
       *) echo "Opção inválida" ;;
     esac
   done

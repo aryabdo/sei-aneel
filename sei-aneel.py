@@ -1307,26 +1307,27 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
         # Prepara conteúdo do email
         assunto = f"SEI ANEEL - Relatório de Monitoramento ({datetime.now().strftime('%d/%m/%Y %H:%M')})"
         
-        corpo_html = """
+        timestamp_str = datetime.now().strftime('%d/%m/%Y às %H:%M:%S')
+        corpo_html = f"""
         <html>
         <head>
             <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                .header { color: #2c5aa0; border-bottom: 2px solid #2c5aa0; padding-bottom: 10px; }
-                .section { margin: 20px 0; }
-                .mudanca { background-color: #e8f4f8; border-left: 4px solid #2c5aa0; padding: 10px; margin: 5px 0; }
-                .falha { background-color: #f8e8e8; border-left: 4px solid #d32f2f; padding: 10px; margin: 5px 0; }
-                .processo { font-weight: bold; color: #1976d2; }
-                .tipo { color: #666; font-style: italic; }
-                .timestamp { color: #888; font-size: 0.9em; }
+                body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                .header {{ color: #2c5aa0; border-bottom: 2px solid #2c5aa0; padding-bottom: 10px; }}
+                .section {{ margin: 20px 0; }}
+                .mudanca {{ background-color: #e8f4f8; border-left: 4px solid #2c5aa0; padding: 10px; margin: 5px 0; }}
+                .falha {{ background-color: #f8e8e8; border-left: 4px solid #d32f2f; padding: 10px; margin: 5px 0; }}
+                .processo {{ font-weight: bold; color: #1976d2; }}
+                .tipo {{ color: #666; font-style: italic; }}
+                .timestamp {{ color: #888; font-size: 0.9em; }}
             </style>
         </head>
         <body>
             <div class="header">
                 <h2>Relatório de Monitoramento SEI ANEEL</h2>
-                <div class="timestamp">Gerado em: {timestamp}</div>
+                <div class="timestamp">Gerado em: {timestamp_str}</div>
             </div>
-        """.format(timestamp=datetime.now().strftime('%d/%m/%Y às %H:%M:%S'))
+        """
         
         if mudancas:
             corpo_html += """
