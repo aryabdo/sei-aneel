@@ -13,6 +13,16 @@ import unicodedata
 import tempfile
 import subprocess
 import json
+from pathlib import Path
+
+# Assegura que o diretório raiz do projeto esteja no PYTHONPATH
+ROOT_DIR = Path(__file__).resolve().parent
+if not (ROOT_DIR / "config_loader.py").exists():
+    ROOT_DIR = ROOT_DIR.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from config_loader import load_config
 
 # Diretório de dados e arquivos de log
 DATA_DIR = os.environ.get("SORTEIO_DATA_DIR", os.path.join(os.path.expanduser("~"), ".sorteio_aneel"))
@@ -32,15 +42,14 @@ def registrar_log(mensagem):
 registrar_log("Início da execução")
 # ================================================
 
-# Configurações de e-mail
-SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.hscl.adv.br")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USER = os.environ.get("SMTP_USER", "ro-dou@hscl.adv.br")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "Aasn1989")
-EMAIL_TO = os.environ.get(
-    "EMAIL_TO",
-    "ARY@HSCL.ADV.BR,asamia@isacteep.com.br"
-)
+# Configurações de e-mail a partir de arquivo de configuração
+CONFIG = load_config()
+SMTP_CONF = CONFIG.get("smtp", {})
+SMTP_SERVER = SMTP_CONF.get("server", "")
+SMTP_PORT = SMTP_CONF.get("port", 587)
+SMTP_USER = SMTP_CONF.get("user", "")
+SMTP_PASSWORD = SMTP_CONF.get("password", "")
+EMAIL_TO = ",".join(CONFIG.get("email", {}).get("recipients", []))
 
 BASE_URL = "https://www2.aneel.gov.br/aplicacoes_liferay/noticias_area/?idAreaNoticia=424"
 SITE_PREFIX = "https://www2.aneel.gov.br"

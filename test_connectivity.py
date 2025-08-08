@@ -2,16 +2,22 @@
 import json
 import smtplib
 import urllib.request
+import json
+import smtplib
+from pathlib import Path
+import sys
+
+# Assegura que o diretório raiz esteja no PYTHONPATH para importar config_loader
+ROOT_DIR = Path(__file__).resolve().parent
+if not (ROOT_DIR / "config_loader.py").exists():
+    ROOT_DIR = ROOT_DIR.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-CONFIG_PATH = '/opt/sei-aneel/config/configs.json'
-
-
-def load_config():
-    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-        return json.load(f)
+from config_loader import load_config
 
 
 def test_twocaptcha(api_key):
