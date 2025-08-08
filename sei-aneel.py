@@ -1392,6 +1392,7 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
                         f"<tr><th>Tipo do processo</th><td>{dados.get('Tipo do processo', '')}</td></tr>",
                         f"<tr><th>Interessados</th><td>{dados.get('Interessados', '')}</td></tr>",
                     ]
+                    
                     tabela_basica = f"<table class=\"detalhes\">{''.join(linhas)}</table>"
                     doc_campos = ['Documento', 'Tipo do documento', 'Data do documento', 'Data de Inclusão', 'Unidade']
                     and_campos = ['Data/Hora do Andamento', 'Unidade do Andamento', 'Descrição do Andamento']
@@ -1431,7 +1432,6 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
             <div class="section">
                 <h3>⚠️ Processos com erro ou não localizados ({len(processos_falha)})</h3>
             """
-
             for processo in processos_falha:
                 corpo_html += f"""
                 <div class="falha">

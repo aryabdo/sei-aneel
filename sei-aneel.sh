@@ -71,6 +71,7 @@ update_sei() {
   git clone "$REPO_URL" "$TMP_DIR" >/dev/null 2>&1
   sudo cp "$TMP_DIR/sei-aneel.py" "$TMP_DIR/sei-aneel.sh" "$SCRIPT_DIR/"
   sudo chown "$USER":"$USER" "$SCRIPT_DIR/sei-aneel.py" "$SCRIPT_DIR/sei-aneel.sh"
+
   rm -rf "$TMP_DIR"
   echo "Atualização concluída."
 }
