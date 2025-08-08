@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Consulta sorteios na ANEEL e envia alertas por e-mail."""
+
 import os
 import sys
 import requests
@@ -15,20 +17,9 @@ import subprocess
 import json
 from pathlib import Path
 
-# Garante que ``config_loader`` possa ser importado independentemente do local
-# de execução do script.
-CONFIG_ENV = os.environ.get("SEI_ANEEL_CONFIG")
-if CONFIG_ENV:
-    ROOT_DIR = Path(CONFIG_ENV).resolve().parent.parent
-else:
-    ROOT_DIR = Path(__file__).resolve()
-    for parent in ROOT_DIR.parents:
-        if (parent / "config_loader.py").exists():
-            ROOT_DIR = parent
-            break
-
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+# Garante que o diretório raiz do projeto esteja no ``PYTHONPATH``.
+ROOT_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT_DIR))
 
 from config_loader import load_config
 
