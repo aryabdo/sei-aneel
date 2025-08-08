@@ -876,6 +876,8 @@ def main() -> List[Dict[str, str]]:
                        help='Modo passo-a-passo para debug')
     parser.add_argument('--max-processes', type=int,
                        help='Número máximo de processos a processar')
+    parser.add_argument('--processo', nargs='*',
+                       help='Números de processo específicos para consulta')
     args = parser.parse_args()
     
     # Inicializa interface interativa
@@ -977,11 +979,13 @@ def main() -> List[Dict[str, str]]:
     
     resultados = []
     try:
-        # Obtém processos da planilha
-        if ui:
-            print(f"\n{Fore.CYAN}📋 Obtendo lista de processos...")
-        
-        processos_brutos = planilha_handler.get_all_processos()
+        # Obtém processos
+        if args.processo:
+            processos_brutos = args.processo
+        else:
+            if ui:
+                print(f"\n{Fore.CYAN}📋 Obtendo lista de processos...")
+            processos_brutos = planilha_handler.get_all_processos()
         processos_validos = []
         
         for proc in processos_brutos:
@@ -1391,7 +1395,8 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
         
         # Envia email
         server = smtplib.SMTP(smtp_config['server'], smtp_config.get('port', 587))
-        server.starttls()
+        if smtp_config.get('starttls', False):
+            server.starttls()
         server.login(smtp_config['user'], smtp_config['password'])
         
         text = msg.as_string()
