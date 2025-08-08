@@ -216,6 +216,21 @@ manage_emails_pauta() {
   done
 }
 
+config_pauta_menu() {
+  while true; do
+    echo -e "${CYAN}1) Configurar SMTP${NC}"
+    echo -e "${CYAN}2) Gerenciar emails${NC}"
+    echo -e "${CYAN}3) Voltar${NC}"
+    read -p $'\e[33mOpção: \e[0m' op
+    case $op in
+      1) config_pauta ;;
+      2) manage_emails_pauta ;;
+      3) break ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
+    esac
+  done
+}
+
 force_run_pauta() {
   log_file="$PAUTA_LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
   "$PAUTA_DIR/run.sh" | tee "$log_file"
@@ -233,17 +248,29 @@ remove_cron_pauta() {
   echo -e "${GREEN}Cron removido.${NC}"
 }
 
+clear_all_cron_pauta() {
+  crontab -r
+  echo -e "${GREEN}Todos agendamentos removidos.${NC}"
+}
+
+list_cron_pauta() {
+  crontab -l 2>/dev/null | grep 'pauta_aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
+}
+
 cron_menu_pauta() {
   while true; do
     echo -e "${CYAN}1) Incluir/Editar agendamento${NC}"
     echo -e "${CYAN}2) Apagar registro${NC}"
-    echo -e "${CYAN}3) Apagar todos agendamentos${NC}"
-    echo -e "${CYAN}4) Voltar${NC}"
+    echo -e "${CYAN}3) Listar agendamentos${NC}"
+    echo -e "${CYAN}4) Apagar todos agendamentos${NC}"
+    echo -e "${CYAN}5) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) schedule_cron_pauta ;;
       2) remove_cron_pauta ;;
-      4) break ;;
+      3) list_cron_pauta ;;
+      4) clear_all_cron_pauta ;;
+      5) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
@@ -320,6 +347,74 @@ remove_sorteio() {
   echo -e "${GREEN}Remoção concluída.${NC}"
 }
 
+# Instalação global e utilitários
+install_all_modules() {
+  install_sei
+  install_pauta
+  install_sorteio
+}
+
+select_install_menu() {
+  while true; do
+    echo -e "${CYAN}1) SEI ANEEL${NC}"
+    echo -e "${CYAN}2) Pauta ANEEL${NC}"
+    echo -e "${CYAN}3) Sorteio ANEEL${NC}"
+    echo -e "${CYAN}4) Voltar${NC}"
+    read -p $'\e[33mOpção: \e[0m' op
+    case $op in
+      1) install_sei ;;
+      2) install_pauta ;;
+      3) install_sorteio ;;
+      4) break ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
+    esac
+  done
+}
+
+install_dependencies_only() {
+  sudo apt-get update
+  sudo apt-get install -y python3 python3-pip tesseract-ocr chromium-browser chromium-chromedriver
+  sudo pip3 install --break-system-packages -r requirements.txt
+  sudo mkdir -p "$CONFIG_DIR" "$LOG_DIR" "$PAUTA_DIR" "$PAUTA_LOG_DIR" "$SORTEIO_DIR" "$SORTEIO_LOG_DIR"
+  sudo touch "$CONFIG_FILE" "$PAUTA_CONFIG" "$SORTEIO_CONFIG"
+  sudo chown -R "$USER":"$USER" "$SCRIPT_DIR" "$PAUTA_DIR" "$SORTEIO_DIR"
+  echo -e "${GREEN}Dependências instaladas.${NC}"
+}
+
+update_global() {
+  install_dependencies_only
+  update_sei
+  update_pauta
+  update_sorteio
+}
+
+remove_all_modules() {
+  remove_sei
+  remove_pauta
+  remove_sorteio
+}
+
+installation_menu() {
+  while true; do
+    echo -e "${CYAN}1) Instalar todos módulos${NC}"
+    echo -e "${CYAN}2) Selecionar módulos${NC}"
+    echo -e "${CYAN}3) Dependências${NC}"
+    echo -e "${CYAN}4) Atualização Global${NC}"
+    echo -e "${CYAN}5) Remoção${NC}"
+    echo -e "${CYAN}6) Voltar${NC}"
+    read -p $'\e[33mOpção: \e[0m' op
+    case $op in
+      1) install_all_modules ;;
+      2) select_install_menu ;;
+      3) install_dependencies_only ;;
+      4) update_global ;;
+      5) remove_all_modules ;;
+      6) break ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
+    esac
+  done
+}
+
 config_sorteio() {
   read -p "Servidor SMTP: " S
   read -p "Porta [587]: " P; P=${P:-587}
@@ -374,6 +469,21 @@ manage_emails_sorteio() {
   done
 }
 
+config_sorteio_menu() {
+  while true; do
+    echo -e "${CYAN}1) Configurar SMTP${NC}"
+    echo -e "${CYAN}2) Gerenciar emails${NC}"
+    echo -e "${CYAN}3) Voltar${NC}"
+    read -p $'\e[33mOpção: \e[0m' op
+    case $op in
+      1) config_sorteio ;;
+      2) manage_emails_sorteio ;;
+      3) break ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
+    esac
+  done
+}
+
 force_run_sorteio() {
   log_file="$SORTEIO_LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
   "$SORTEIO_DIR/run.sh" | tee "$log_file"
@@ -391,17 +501,29 @@ remove_cron_sorteio() {
   echo -e "${GREEN}Cron removido.${NC}"
 }
 
+clear_all_cron_sorteio() {
+  crontab -r
+  echo -e "${GREEN}Todos agendamentos removidos.${NC}"
+}
+
+list_cron_sorteio() {
+  crontab -l 2>/dev/null | grep 'sorteio_aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
+}
+
 cron_menu_sorteio() {
   while true; do
     echo -e "${CYAN}1) Incluir/Editar agendamento${NC}"
     echo -e "${CYAN}2) Apagar registro${NC}"
-    echo -e "${CYAN}3) Apagar todos agendamentos${NC}"
-    echo -e "${CYAN}4) Voltar${NC}"
+    echo -e "${CYAN}3) Listar agendamentos${NC}"
+    echo -e "${CYAN}4) Apagar todos agendamentos${NC}"
+    echo -e "${CYAN}5) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) schedule_cron_sorteio ;;
       2) remove_cron_sorteio ;;
-      4) break ;;
+      3) list_cron_sorteio ;;
+      4) clear_all_cron_sorteio ;;
+      5) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
@@ -598,18 +720,24 @@ clear_all_cron() {
   echo -e "${GREEN}Todos agendamentos removidos.${NC}"
 }
 
+list_cron() {
+  crontab -l 2>/dev/null | grep 'sei-aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
+}
+
 cron_menu() {
   while true; do
     echo -e "${CYAN}1) Incluir/Editar agendamento${NC}"
     echo -e "${CYAN}2) Apagar registro${NC}"
-    echo -e "${CYAN}3) Apagar todos agendamentos${NC}"
-    echo -e "${CYAN}4) Voltar${NC}"
+    echo -e "${CYAN}3) Listar agendamentos${NC}"
+    echo -e "${CYAN}4) Apagar todos agendamentos${NC}"
+    echo -e "${CYAN}5) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) schedule_cron ;;
       2) remove_cron ;;
-      3) clear_all_cron ;;
-      4) break ;;
+      3) list_cron ;;
+      4) clear_all_cron ;;
+      5) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
@@ -645,6 +773,23 @@ backup_menu() {
   done
 }
 
+connection_config_menu() {
+  while true; do
+    echo -e "${CYAN}1) SEI ANEEL${NC}"
+    echo -e "${CYAN}2) Pauta ANEEL${NC}"
+    echo -e "${CYAN}3) Sorteio ANEEL${NC}"
+    echo -e "${CYAN}4) Voltar${NC}"
+    read -p $'\e[33mOpção: \e[0m' op
+    case $op in
+      1) configure_sei ;;
+      2) config_pauta_menu ;;
+      3) config_sorteio_menu ;;
+      4) break ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
+    esac
+  done
+}
+
 config_menu() {
   while true; do
     echo -e "${CYAN}1) Configurações de conexão${NC}"
@@ -654,7 +799,7 @@ config_menu() {
     echo -e "${CYAN}5) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) configure_sei ;;
+      1) connection_config_menu ;;
       2) test_connectivity ;;
       3) cron_menu ;;
       4) backup_menu ;;
@@ -669,27 +814,23 @@ sei_menu() {
     echo -e "${CYAN}1) Instalar${NC}"
     echo -e "${CYAN}2) Atualizar${NC}"
     echo -e "${CYAN}3) Remover${NC}"
-    echo -e "${CYAN}4) Configurar${NC}"
-    echo -e "${CYAN}5) Gerenciar emails${NC}"
-    echo -e "${CYAN}6) Gerenciar processos${NC}"
-    echo -e "${CYAN}7) Testar conectividade${NC}"
-    echo -e "${CYAN}8) Executar forçado${NC}"
-    echo -e "${CYAN}9) Gerenciar cron${NC}"
-    echo -e "${CYAN}10) Ver logs${NC}"
-    echo -e "${CYAN}11) Sair${NC}"
+    echo -e "${CYAN}4) Gerenciar processos${NC}"
+    echo -e "${CYAN}5) Testar conectividade${NC}"
+    echo -e "${CYAN}6) Executar forçado${NC}"
+    echo -e "${CYAN}7) Gerenciar cron${NC}"
+    echo -e "${CYAN}8) Ver logs${NC}"
+    echo -e "${CYAN}9) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
       1) install_sei ;;
       2) update_sei ;;
       3) remove_sei ;;
-      4) configure_sei ;;
-      5) manage_emails ;;
-      6) manage_processes_menu ;;
-      7) test_connectivity ;;
-      8) force_run ;;
-      9) cron_menu ;;
-      10) view_logs ;;
-      11) exit 0 ;;
+      4) manage_processes_menu ;;
+      5) test_connectivity ;;
+      6) force_run ;;
+      7) cron_menu ;;
+      8) view_logs ;;
+      9) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
@@ -703,23 +844,19 @@ pauta_menu() {
     echo -e "${CYAN}1) Instalar${NC}"
     echo -e "${CYAN}2) Atualizar${NC}"
     echo -e "${CYAN}3) Remover${NC}"
-    echo -e "${CYAN}4) Configurar${NC}"
-    echo -e "${CYAN}5) Gerenciar emails${NC}"
-    echo -e "${CYAN}6) Executar forçado${NC}"
-    echo -e "${CYAN}7) Gerenciar cron${NC}"
-    echo -e "${CYAN}8) Ver logs${NC}"
-    echo -e "${CYAN}9) Voltar${NC}"
+    echo -e "${CYAN}4) Executar forçado${NC}"
+    echo -e "${CYAN}5) Gerenciar cron${NC}"
+    echo -e "${CYAN}6) Ver logs${NC}"
+    echo -e "${CYAN}7) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
-      1) install_pauta ;; 
-      2) update_pauta ;; 
-      3) remove_pauta ;; 
-      4) config_pauta ;; 
-      5) manage_emails_pauta ;;
-      6) force_run_pauta ;;
-      7) cron_menu_pauta ;;
-      8) view_logs_pauta ;;
-      9) break ;;
+      1) install_pauta ;;
+      2) update_pauta ;;
+      3) remove_pauta ;;
+      4) force_run_pauta ;;
+      5) cron_menu_pauta ;;
+      6) view_logs_pauta ;;
+      7) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
@@ -733,23 +870,19 @@ sorteio_menu() {
     echo -e "${CYAN}1) Instalar${NC}"
     echo -e "${CYAN}2) Atualizar${NC}"
     echo -e "${CYAN}3) Remover${NC}"
-    echo -e "${CYAN}4) Configurar${NC}"
-    echo -e "${CYAN}5) Gerenciar emails${NC}"
-    echo -e "${CYAN}6) Executar forçado${NC}"
-    echo -e "${CYAN}7) Gerenciar cron${NC}"
-    echo -e "${CYAN}8) Ver logs${NC}"
-    echo -e "${CYAN}9) Voltar${NC}"
+    echo -e "${CYAN}4) Executar forçado${NC}"
+    echo -e "${CYAN}5) Gerenciar cron${NC}"
+    echo -e "${CYAN}6) Ver logs${NC}"
+    echo -e "${CYAN}7) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
-      1) install_sorteio ;; 
-      2) update_sorteio ;; 
-      3) remove_sorteio ;; 
-      4) config_sorteio ;; 
-      5) manage_emails_sorteio ;;
-      6) force_run_sorteio ;;
-      7) cron_menu_sorteio ;;
-      8) view_logs_sorteio ;;
-      9) break ;;
+      1) install_sorteio ;;
+      2) update_sorteio ;;
+      3) remove_sorteio ;;
+      4) force_run_sorteio ;;
+      5) cron_menu_sorteio ;;
+      6) view_logs_sorteio ;;
+      7) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
@@ -758,18 +891,20 @@ sorteio_menu() {
 # Menu principal
 main_menu() {
   while true; do
-    echo -e "${CYAN}1) SEI ANEEL${NC}"
-    echo -e "${CYAN}2) Pauta ANEEL${NC}"
-    echo -e "${CYAN}3) Sorteio ANEEL${NC}"
-    echo -e "${CYAN}4) Configurações${NC}"
-    echo -e "${CYAN}5) Sair${NC}"
+    echo -e "${CYAN}1) Instalação${NC}"
+    echo -e "${CYAN}2) SEI ANEEL${NC}"
+    echo -e "${CYAN}3) Pauta ANEEL${NC}"
+    echo -e "${CYAN}4) Sorteio ANEEL${NC}"
+    echo -e "${CYAN}5) Configurações${NC}"
+    echo -e "${CYAN}6) Sair${NC}"
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
-      1) sei_menu ;;
-      2) pauta_menu ;;
-      3) sorteio_menu ;;
-      4) config_menu ;;
-      5) exit 0 ;;
+      1) installation_menu ;;
+      2) sei_menu ;;
+      3) pauta_menu ;;
+      4) sorteio_menu ;;
+      5) config_menu ;;
+      6) exit 0 ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
