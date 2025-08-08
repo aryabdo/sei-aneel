@@ -731,7 +731,6 @@ class SEIAneel:
                             valor = "; ".join(lista_interessados)
                         if not valor:
                             valor = linha.text.replace(tds[0].text, "", 1).strip().replace("\n", "; ").replace("\r", "")
-
                         dados["Interessados"] = valor
                     else:
                         dados[chave] = valor
@@ -739,7 +738,11 @@ class SEIAneel:
             # Garantir captura da coluna Interessados
             if 'Interessados' not in dados or not dados.get('Interessados'):
                 try:
-                    celula = tabela.find_element(By.XPATH, ".//td[@width='20%'][contains(normalize-space(), 'Interessados')]")
+                    # Procura por qualquer célula que contenha o rótulo de interessados
+                    celula = tabela.find_element(
+                        By.XPATH,
+                        ".//td[contains(translate(normalize-space(), 'INTERESSADO', 'interessado'), 'interessado')]"
+                    )
                     valor = ""
                     try:
                         valor_td = celula.find_element(By.XPATH, "following-sibling::td[1]")
