@@ -1327,6 +1327,9 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
                 .processo {{ font-weight: bold; color: #1976d2; }}
                 .tipo {{ color: #666; font-style: italic; }}
                 .timestamp {{ color: #888; font-size: 0.9em; }}
+                table.detalhes {{ border-collapse: collapse; margin-top: 5px; }}
+                table.detalhes th, table.detalhes td {{ border: 1px solid #ddd; padding: 4px 8px; text-align: left; font-size: 0.9em; }}
+                table.detalhes th {{ background-color: #f0f0f0; }}
             </style>
         </head>
         <body>

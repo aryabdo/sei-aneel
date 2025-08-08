@@ -318,7 +318,6 @@ menu() {
       9) cron_menu ;;
       10) view_logs ;;
       11) exit 0 ;;
-
       *) echo "Opção inválida" ;;
     esac
   done
