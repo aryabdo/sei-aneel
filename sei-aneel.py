@@ -43,6 +43,7 @@ import logging
 import shutil
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formatdate
 from PIL import Image, ImageOps, ImageFilter
 from oauth2client.service_account import ServiceAccountCredentials
 from selenium import webdriver
@@ -1517,19 +1518,24 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
         msg['Subject'] = assunto
         msg['From'] = smtp_config['user']
         msg['To'] = ', '.join(recipients)
+        msg['Date'] = formatdate(localtime=True)
 
-        # Adiciona versão HTML
+        # Adiciona versão texto simples e HTML
+        parte_texto = MIMEText(
+            'Relatório de Monitoramento SEI ANEEL. Utilize um cliente compatível com HTML para melhor visualização.',
+            'plain', 'utf-8')
+        msg.attach(parte_texto)
         parte_html = MIMEText(corpo_html, 'html', 'utf-8')
         msg.attach(parte_html)
 
         # Envia email
         server = smtplib.SMTP(smtp_config['server'], smtp_config.get('port', 587))
+        server.ehlo()
         if smtp_config.get('starttls', False):
             server.starttls()
+            server.ehlo()
         server.login(smtp_config['user'], smtp_config['password'])
-
-        text = msg.as_string()
-        server.sendmail(smtp_config['user'], recipients, text)
+        server.send_message(msg)
         server.quit()
 
         logger.info(f"Email de notificação enviado para {len(recipients)} destinatário(s)")
