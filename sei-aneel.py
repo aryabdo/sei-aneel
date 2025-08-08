@@ -19,6 +19,7 @@ import colorama
 from colorama import Fore, Back, Style
 import threading
 import signal
+from config_loader import DEFAULT_CONFIG_PATH
 
 # Inicializa colorama para Windows
 colorama.init(autoreset=True)
@@ -201,10 +202,7 @@ class ConfigManager:
     
     def __init__(self, config_path: str = None):
         if config_path is None:
-            if platform.system() == "Windows":
-                config_path = os.path.join(os.getcwd(), "config", "configs.json")
-            else:
-                config_path = "/opt/sei-aneel/config/configs.json"
+            config_path = DEFAULT_CONFIG_PATH
         
         self.config_path = config_path
         self.config = self.load_config()
@@ -213,7 +211,11 @@ class ConfigManager:
         """Carrega configurações do arquivo JSON"""
         try:
             with open(self.config_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                config = json.load(f)
+            smtp = config.setdefault('smtp', {})
+            smtp.setdefault('port', 587)
+            smtp.setdefault('starttls', False)
+            return config
         except FileNotFoundError:
             raise FileNotFoundError(f"Arquivo de configuração não encontrado: {self.config_path}")
         except json.JSONDecodeError as e:

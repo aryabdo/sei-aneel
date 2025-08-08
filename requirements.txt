@@ -7,3 +7,4 @@ pytesseract
 colorama
 requests
 beautifulsoup4
+google-api-python-client

@@ -2,16 +2,13 @@
 import json
 import smtplib
 import urllib.request
+import json
+import smtplib
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-CONFIG_PATH = '/opt/sei-aneel/config/configs.json'
-
-
-def load_config():
-    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-        return json.load(f)
+from config_loader import load_config
 
 
 def test_twocaptcha(api_key):
