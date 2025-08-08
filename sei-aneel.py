@@ -766,8 +766,26 @@ class SEIAneel:
                     self.logger.error(f"Erro ao extrair interessados: {e}")
         except Exception as e:
             self.logger.error(f"Erro ao extrair detalhes do processo: {e}")
-        
+
+        if not dados.get("Interessados"):
+            extra = self.buscar_interessados_redundante()
+            if extra:
+                dados["Interessados"] = extra
+
         return dados
+
+    def buscar_interessados_redundante(self) -> str:
+        """Busca interessados diretamente no HTML quando a extração padrão falhar."""
+        try:
+            source = self.driver.page_source
+            match = re.search(r"Interessad[oa]s?</td>\s*<td[^>]*>(.*?)</td>", source, re.IGNORECASE | re.DOTALL)
+            if match:
+                texto = re.sub(r"<[^>]+>", "", match.group(1))
+                texto = re.sub(r"\s+", " ", texto).strip()
+                return texto
+        except Exception as e:
+            self.logger.error(f"Erro na busca redundante de interessados: {e}")
+        return ""
 
     def extrair_lista_protocolos_concatenado(self) -> Tuple[str, str, str, str, str]:
         """Extrai lista de protocolos/documentos"""
@@ -1185,11 +1203,15 @@ def processar_processo(proc: str, driver, planilha_handler: PlanilhaHandler,
         detalhes = sei.extrair_detalhes_processo()
         doc_nr, doc_tipo, doc_data, doc_incl, doc_uni = sei.extrair_lista_protocolos_concatenado()
         and_datas, and_unids, and_descrs = sei.extrair_andamentos_concatenado()
-        
+
+        interessados = detalhes.get("Interessados", "")
+        if not interessados:
+            interessados = sei.buscar_interessados_redundante()
+
         linha = [
             detalhes.get("Processo", ""),
             detalhes.get("Tipo", ""),
-            detalhes.get("Interessados", ""),
+            interessados,
             doc_nr,
             doc_tipo,
             doc_data,
