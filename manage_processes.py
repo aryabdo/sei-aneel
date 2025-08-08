@@ -7,12 +7,7 @@ from pathlib import Path
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-CONFIG_PATH = '/opt/sei-aneel/config/configs.json'
-
-
-def load_config(path=CONFIG_PATH):
-    with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+from config_loader import load_config
 
 
 def connect_sheet(conf):
