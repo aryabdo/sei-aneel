@@ -19,6 +19,7 @@ import colorama
 from colorama import Fore, Back, Style
 import threading
 import signal
+from config_loader import DEFAULT_CONFIG_PATH
 
 # Garante que o diretório raiz esteja no PYTHONPATH para importar config_loader
 ROOT_DIR = Path(__file__).resolve().parent

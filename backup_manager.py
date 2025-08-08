@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 from pathlib import Path
 import zipfile
-import sys
 
 # Assegura acesso ao módulo config_loader quando executado de qualquer local
 ROOT_DIR = Path(__file__).resolve().parent
