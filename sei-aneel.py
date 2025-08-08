@@ -43,6 +43,7 @@ import logging
 import shutil
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formatdate
 from PIL import Image, ImageOps, ImageFilter
 from oauth2client.service_account import ServiceAccountCredentials
 from selenium import webdriver
@@ -766,8 +767,26 @@ class SEIAneel:
                     self.logger.error(f"Erro ao extrair interessados: {e}")
         except Exception as e:
             self.logger.error(f"Erro ao extrair detalhes do processo: {e}")
-        
+
+        if not dados.get("Interessados"):
+            extra = self.buscar_interessados_redundante()
+            if extra:
+                dados["Interessados"] = extra
+
         return dados
+
+    def buscar_interessados_redundante(self) -> str:
+        """Busca interessados diretamente no HTML quando a extração padrão falhar."""
+        try:
+            source = self.driver.page_source
+            match = re.search(r"Interessad[oa]s?</td>\s*<td[^>]*>(.*?)</td>", source, re.IGNORECASE | re.DOTALL)
+            if match:
+                texto = re.sub(r"<[^>]+>", "", match.group(1))
+                texto = re.sub(r"\s+", " ", texto).strip()
+                return texto
+        except Exception as e:
+            self.logger.error(f"Erro na busca redundante de interessados: {e}")
+        return ""
 
     def extrair_lista_protocolos_concatenado(self) -> Tuple[str, str, str, str, str]:
         """Extrai lista de protocolos/documentos"""
@@ -881,8 +900,14 @@ class PlanilhaHandler:
         """Obtém todos os valores da planilha"""
         def _get_values():
             return self.sheet.get_all_values()
-        
+
         return operacao_com_retry(_get_values, logger=self.logger)
+
+    def get_cell_value(self, row: int, col: int) -> str:
+        """Obtém valor de uma célula específica"""
+        def _get_cell():
+            return self.sheet.cell(row, col).value
+        return operacao_com_retry(_get_cell, logger=self.logger)
 
 def main() -> List[Dict[str, str]]:
     """
@@ -1185,11 +1210,15 @@ def processar_processo(proc: str, driver, planilha_handler: PlanilhaHandler,
         detalhes = sei.extrair_detalhes_processo()
         doc_nr, doc_tipo, doc_data, doc_incl, doc_uni = sei.extrair_lista_protocolos_concatenado()
         and_datas, and_unids, and_descrs = sei.extrair_andamentos_concatenado()
-        
+
+        interessados = detalhes.get("Interessados", "")
+        if not interessados:
+            interessados = sei.buscar_interessados_redundante()
+
         linha = [
             detalhes.get("Processo", ""),
             detalhes.get("Tipo", ""),
-            detalhes.get("Interessados", ""),
+            interessados,
             doc_nr,
             doc_tipo,
             doc_data,
@@ -1199,10 +1228,26 @@ def processar_processo(proc: str, driver, planilha_handler: PlanilhaHandler,
             and_unids,
             and_descrs,
         ]
-        
+
         if ui:
             print(f"{Fore.CYAN}  💾 Salvando na planilha...")
-        status = planilha_handler.atualizar_ou_inserir_processo(linha, detalhes.get("Processo", ""))
+        status_inicial = None
+        col_c_val = ""
+        for tentativa in range(2):
+            status_atual = planilha_handler.atualizar_ou_inserir_processo(linha, detalhes.get("Processo", ""))
+            if status_inicial is None:
+                status_inicial = status_atual
+            row_idx = planilha_handler.find_row_by_proc_number(detalhes.get("Processo", ""))
+            if row_idx:
+                valor = planilha_handler.get_cell_value(row_idx, 3)
+                if valor and valor.strip():
+                    col_c_val = valor
+                    break
+            if tentativa == 0:
+                logger.warning(f"Coluna C vazia para {detalhes.get('Processo','')}, tentando novamente...")
+        if not col_c_val:
+            logger.warning(f"Coluna C permaneceu vazia para {detalhes.get('Processo','')} após 2 tentativas.")
+        status = status_inicial if status_inicial else status_atual
         sei.captcha_handler.limpar_captchas()
         
         status_msg = "✅ Atualizado" if status == "atualizado" else "📝 Inserido" if status == "inserido" else "❌ Falha"
@@ -1473,19 +1518,24 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
         msg['Subject'] = assunto
         msg['From'] = smtp_config['user']
         msg['To'] = ', '.join(recipients)
+        msg['Date'] = formatdate(localtime=True)
 
-        # Adiciona versão HTML
+        # Adiciona versão texto simples e HTML
+        parte_texto = MIMEText(
+            'Relatório de Monitoramento SEI ANEEL. Utilize um cliente compatível com HTML para melhor visualização.',
+            'plain', 'utf-8')
+        msg.attach(parte_texto)
         parte_html = MIMEText(corpo_html, 'html', 'utf-8')
         msg.attach(parte_html)
 
         # Envia email
         server = smtplib.SMTP(smtp_config['server'], smtp_config.get('port', 587))
+        server.ehlo()
         if smtp_config.get('starttls', False):
             server.starttls()
+            server.ehlo()
         server.login(smtp_config['user'], smtp_config['password'])
-
-        text = msg.as_string()
-        server.sendmail(smtp_config['user'], recipients, text)
+        server.send_message(msg)
         server.quit()
 
         logger.info(f"Email de notificação enviado para {len(recipients)} destinatário(s)")
