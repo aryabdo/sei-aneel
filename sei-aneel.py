@@ -720,7 +720,7 @@ class SEIAneel:
                     valor = tds[1].text.strip().replace("\n", " ").replace("\r", "")
 
                     # Tratamento especial para interessados
-                    if chave.lower() == "interessados":
+                    if chave.lower().startswith("interessado"):
                         subelementos = tds[1].find_elements(By.XPATH, ".//*")
                         if subelementos:
                             lista_interessados = []
@@ -729,8 +729,9 @@ class SEIAneel:
                                 if texto and texto not in lista_interessados:
                                     lista_interessados.append(texto)
                             valor = "; ".join(lista_interessados)
-
-                    dados[chave] = valor
+                        dados["Interessados"] = valor
+                    else:
+                        dados[chave] = valor
 
             # Garantir captura da coluna Interessados
             if 'Interessados' not in dados:
