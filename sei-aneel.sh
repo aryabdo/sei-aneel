@@ -13,6 +13,8 @@ CONFIG_FILE="$CONFIG_DIR/configs.json"
 LOG_DIR="$SCRIPT_DIR/logs"
 REPO_URL="https://github.com/aryabdo/sei-aneel.git"
 
+export SEI_ANEEL_CONFIG="$CONFIG_FILE"
+
 # Diretórios para módulos adicionais
 PAUTA_DIR="/opt/pauta-aneel"
 PAUTA_CONFIG="$PAUTA_DIR/config.env"
