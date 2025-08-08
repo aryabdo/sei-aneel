@@ -35,6 +35,7 @@ except ImportError:
 import time
 import re
 import csv
+import html
 import gspread
 import pytesseract
 import smtplib
@@ -936,6 +937,8 @@ def main() -> List[Dict[str, str]]:
                        help='Número máximo de processos a processar')
     parser.add_argument('--processo', nargs='*',
                        help='Números de processo específicos para consulta')
+    parser.add_argument('--email-tabela', action='store_true',
+                       help='Envia tabela completa por email sem atualizar')
     args = parser.parse_args()
     
     # Inicializa interface interativa
@@ -965,9 +968,22 @@ def main() -> List[Dict[str, str]]:
     # Configura logging
     logger_manager = Logger(config)
     logger = logger_manager.logger
-    
+
     logger.info("Iniciando script de monitoramento SEI ANEEL")
-    
+
+    if args.email_tabela:
+        try:
+            planilha_handler = PlanilhaHandler(config, logger)
+            enviar_tabela_completa_email(planilha_handler, config, logger)
+            if ui:
+                print(f"{Fore.GREEN}✅ Tabela enviada por email com sucesso")
+            return []
+        except Exception as e:
+            if ui:
+                print(f"{Fore.RED}❌ Erro ao enviar tabela: {e}")
+            logger.error(f"Erro ao enviar tabela completa: {e}")
+            return []
+
     # Configura paths
     paths = configurar_paths(config)
     
@@ -1539,9 +1555,108 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
         server.quit()
 
         logger.info(f"Email de notificação enviado para {len(recipients)} destinatário(s)")
-        
+
     except Exception as e:
         logger.error(f"Erro ao enviar email de notificação: {e}")
+
+
+def enviar_tabela_completa_email(planilha_handler: PlanilhaHandler,
+                                 config: ConfigManager, logger) -> None:
+    """Envia por email a tabela completa sem realizar atualização"""
+    try:
+        smtp_config = config.get('smtp', {})
+        email_config = config.get('email', {})
+
+        if not all([
+            smtp_config.get('server'),
+            smtp_config.get('user'),
+            smtp_config.get('password'),
+            email_config.get('recipients')
+        ]):
+            logger.warning("Configurações de email incompletas, pulando envio")
+            return
+
+        dados = planilha_handler.get_all_values()
+        if not dados:
+            logger.warning("Nenhum dado obtido da planilha")
+            return
+
+        cabecalho = dados[0]
+        linhas = dados[1:]
+
+        assunto = (
+            f"SEI ANEEL - Tabela Completa ({datetime.now().strftime('%d/%m/%Y %H:%M')})"
+        )
+        timestamp_str = datetime.now().strftime('%d/%m/%Y às %H:%M:%S')
+
+        cab_html = ''.join(f'<th>{html.escape(c)}</th>' for c in cabecalho)
+        linhas_html = ''
+        for linha in linhas:
+            linha_html = ''.join(f'<td>{html.escape(col)}</td>' for col in linha)
+            linhas_html += f'<tr>{linha_html}</tr>'
+
+        corpo_html = f"""
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                .header {{ color: #2c5aa0; border-bottom: 2px solid #2c5aa0; padding-bottom: 10px; }}
+                .section {{ margin: 20px 0; }}
+                table.detalhes {{ border-collapse: collapse; width: 100%; }}
+                table.detalhes th, table.detalhes td {{ border: 1px solid #ddd; padding: 4px 8px; text-align: left; vertical-align: top; font-size: 0.9em; }}
+                table.detalhes th {{ background-color: #f0f0f0; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>Relatório de Monitoramento SEI ANEEL</h2>
+                <div class="timestamp">Gerado em: {timestamp_str}</div>
+            </div>
+            <div class="section">
+                <h3>📋 Tabela Completa</h3>
+                <table class="detalhes">
+                    <tr>{cab_html}</tr>
+                    {linhas_html}
+                </table>
+            </div>
+            <div class="section">
+                <p><small>Este é um email automático do sistema de monitoramento SEI ANEEL.</small></p>
+            </div>
+        </body>
+        </html>
+        """
+
+        recipients = [r.strip() for r in email_config.get('recipients', []) if r.strip()]
+        if not recipients:
+            logger.warning("Nenhum destinatário de email configurado, pulando envio")
+            return
+
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = assunto
+        msg['From'] = smtp_config['user']
+        msg['To'] = ', '.join(recipients)
+        msg['Date'] = formatdate(localtime=True)
+
+        parte_texto = MIMEText(
+            'Tabela completa dos processos SEI ANEEL. Utilize um cliente compatível com HTML para melhor visualização.',
+            'plain', 'utf-8')
+        msg.attach(parte_texto)
+        parte_html = MIMEText(corpo_html, 'html', 'utf-8')
+        msg.attach(parte_html)
+
+        server = smtplib.SMTP(smtp_config['server'], smtp_config.get('port', 587))
+        server.ehlo()
+        if smtp_config.get('starttls', False):
+            server.starttls()
+            server.ehlo()
+        server.login(smtp_config['user'], smtp_config['password'])
+        server.send_message(msg)
+        server.quit()
+
+        logger.info(f"Email com tabela completa enviado para {len(recipients)} destinatário(s)")
+
+    except Exception as e:
+        logger.error(f"Erro ao enviar tabela completa: {e}")
 
 if __name__ == "__main__":
     try:
