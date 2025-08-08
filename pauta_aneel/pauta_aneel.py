@@ -15,8 +15,14 @@ import subprocess
 from urllib.parse import urljoin
 import hashlib
 
+# Diretório de dados e arquivos de log
+DATA_DIR = os.environ.get("PAUTA_DATA_DIR", os.path.join(os.path.expanduser("~"), ".pauta_aneel"))
+os.makedirs(DATA_DIR, exist_ok=True)
+LOG_FILE = os.environ.get("PAUTA_LOG_FILE", os.path.join(DATA_DIR, "pauta_aneel.log"))
+HASH_RESULT_FILE = os.environ.get("HASH_RESULT_FILE", os.path.join(DATA_DIR, "ultimo_resultado_aneel_425.txt"))
+KEYWORDS_FILE = os.environ.get("KEYWORDS_FILE", os.path.join(DATA_DIR, ".pauta_aneel_keywords"))
+
 # === Registro de data/hora de execução no log ===
-LOG_FILE = "/tmp/pauta_aneel_cron.log"
 def registrar_log(mensagem):
     try:
         with open(LOG_FILE, "a") as f:
@@ -37,9 +43,6 @@ EMAIL_TO = os.environ.get("EMAIL_TO", "asamia@isacteep.com.br,ary@hscl.adv.br")
 
 BASE_URL = "https://www2.aneel.gov.br/aplicacoes_liferay/noticias_area/?idAreaNoticia=425"
 SITE_PREFIX = "https://www2.aneel.gov.br"
-
-HASH_RESULT_FILE = os.environ.get("HASH_RESULT_FILE", "/tmp/ultimo_resultado_aneel_425.txt")
-KEYWORDS_FILE = ".pauta_aneel_keywords"
 
 # Função para carregar termos de pesquisa do arquivo externo, se existir
 def load_keywords():
@@ -185,10 +188,13 @@ def extract_items_from_tr(url):
 def gerar_pdf_da_pagina(url, pdf_file):
     try:
         # Gera o PDF diretamente da URL, ignorando erros de carregamento de recursos externos
+        env = os.environ.copy()
+        env.setdefault("XDG_RUNTIME_DIR", "/tmp")
         result = subprocess.run(
             ["wkhtmltopdf", "--quiet", "--load-error-handling", "ignore", url, pdf_file],
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
+            env=env
         )
         if result.returncode != 0:
             print("Erro ao gerar PDF (wkhtmltopdf):", result.stderr.decode())

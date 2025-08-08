@@ -127,10 +127,16 @@ CFG
 
   cat <<'RUN' > "$PAUTA_DIR/run.sh"
 #!/bin/bash
+DIR="$(dirname "$0")"
+cd "$DIR"
 set -a
-source "$(dirname "$0")/config.env"
+source "$DIR/config.env"
+PAUTA_DATA_DIR="$DIR"
+PAUTA_LOG_FILE="$DIR/logs/pauta_aneel.log"
+XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/tmp}
 set +a
-python3 "$(dirname "$0")/pauta_aneel.py" "$@"
+python3 "$DIR/pauta_aneel.py" "$@"
+
 RUN
   chmod +x "$PAUTA_DIR/run.sh"
 
@@ -278,10 +284,16 @@ CFG
 
   cat <<'RUN' > "$SORTEIO_DIR/run.sh"
 #!/bin/bash
+
+DIR="$(dirname "$0")"
+cd "$DIR"
 set -a
-source "$(dirname "$0")/config.env"
+source "$DIR/config.env"
+SORTEIO_DATA_DIR="$DIR"
+SORTEIO_LOG_FILE="$DIR/logs/sorteio_aneel.log"
 set +a
-python3 "$(dirname "$0")/sorteio_aneel.py" "$@"
+python3 "$DIR/sorteio_aneel.py" "$@"
+
 RUN
   chmod +x "$SORTEIO_DIR/run.sh"
 

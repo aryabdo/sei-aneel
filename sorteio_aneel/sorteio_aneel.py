@@ -14,10 +14,13 @@ import tempfile
 import subprocess
 import json
 
-# === Registro de data/hora de execução no log ===
-LOG_FILE = "/tmp/sorteio_aneel_cron.log"
-KEYWORDS_FILE = ".sorteio_aneel_keywords"
+# Diretório de dados e arquivos de log
+DATA_DIR = os.environ.get("SORTEIO_DATA_DIR", os.path.join(os.path.expanduser("~"), ".sorteio_aneel"))
+os.makedirs(DATA_DIR, exist_ok=True)
+LOG_FILE = os.environ.get("SORTEIO_LOG_FILE", os.path.join(DATA_DIR, "sorteio_aneel.log"))
+KEYWORDS_FILE = os.environ.get("KEYWORDS_FILE", os.path.join(DATA_DIR, ".sorteio_aneel_keywords"))
 
+# === Registro de data/hora de execução no log ===
 def registrar_log(mensagem):
     try:
         with open(LOG_FILE, "a") as f:
@@ -42,7 +45,9 @@ EMAIL_TO = os.environ.get(
 BASE_URL = "https://www2.aneel.gov.br/aplicacoes_liferay/noticias_area/?idAreaNoticia=424"
 SITE_PREFIX = "https://www2.aneel.gov.br"
 
-LAST_RESULT_FILE = os.environ.get("LAST_RESULT_FILE", "/tmp/ultimo_resultado_aneel.json")
+LAST_RESULT_FILE = os.environ.get(
+    "LAST_RESULT_FILE", os.path.join(DATA_DIR, "ultimo_resultado_aneel.json")
+)
 
 # Função para carregar termos de pesquisa do arquivo externo, se existir
 def load_keywords():
