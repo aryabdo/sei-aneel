@@ -1,0 +1,58 @@
+{
+  "smtp": {
+    "server": "smtp.exemplo.com",
+    "port": 587,
+    "user": "usuario",
+    "password": "senha",
+    "starttls": false
+  },
+  "twocaptcha": {
+    "api_key": "SUA_CHAVE_2CAPTCHA"
+  },
+  "google_drive": {
+    "credentials_file": "/caminho/para/credentials.json",
+    "sheet_name": "Processos ANEEL",
+    "worksheet_name": "Processos"
+  },
+  "email": {
+    "recipients": ["destinatario@exemplo.com"]
+  },
+  "keywords": {
+    "pauta": [
+      "consulta publica",
+      "tomada de subsidio",
+      "consulta externa",
+      "audiencia publica",
+      "leilao",
+      "isa energia",
+      "cteep",
+      "companhia de transmissao de energia eletrica paulista",
+      "interligacao eletrica"
+    ],
+    "sorteio": [
+      "consulta publica",
+      "reajuste tarifario",
+      "rbse",
+      "tomada de subsidio",
+      "consulta externa",
+      "audiencia publica",
+      "leilao",
+      "isa energia",
+      "cteep",
+      "companhia de transmissao de energia eletrica paulista",
+      "interligacao eletrica"
+    ]
+  },
+  "paths": {
+    "tesseract": "/usr/bin/tesseract",
+    "chromedriver": "/usr/bin/chromedriver",
+    "chrome_binary": "/usr/bin/chromium-browser"
+  },
+  "execution": {
+    "captcha_max_tries": 5,
+    "max_retry_attempts": 5
+  },
+  "logging": {
+    "level": "INFO"
+  }
+}

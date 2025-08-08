@@ -16,10 +16,20 @@ from urllib.parse import urljoin
 import hashlib
 from pathlib import Path
 
-# Ajusta PYTHONPATH para permitir importação de config_loader
-ROOT_DIR = Path(__file__).resolve().parent
-if not (ROOT_DIR / "config_loader.py").exists():
-    ROOT_DIR = ROOT_DIR.parent
+# Garante que o diretório do projeto esteja no PYTHONPATH para importação de
+# ``config_loader``. O caminho é obtido a partir da variável de ambiente
+# ``SEI_ANEEL_CONFIG`` ou, como fallback, procurando pelo arquivo a partir do
+# diretório atual.
+CONFIG_ENV = os.environ.get("SEI_ANEEL_CONFIG")
+if CONFIG_ENV:
+    ROOT_DIR = Path(CONFIG_ENV).resolve().parent.parent
+else:
+    ROOT_DIR = Path(__file__).resolve()
+    for parent in ROOT_DIR.parents:
+        if (parent / "config_loader.py").exists():
+            ROOT_DIR = parent
+            break
+
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
@@ -30,7 +40,6 @@ DATA_DIR = os.environ.get("PAUTA_DATA_DIR", os.path.join(os.path.expanduser("~")
 os.makedirs(DATA_DIR, exist_ok=True)
 LOG_FILE = os.environ.get("PAUTA_LOG_FILE", os.path.join(DATA_DIR, "pauta_aneel.log"))
 HASH_RESULT_FILE = os.environ.get("HASH_RESULT_FILE", os.path.join(DATA_DIR, "ultimo_resultado_aneel_425.txt"))
-KEYWORDS_FILE = os.environ.get("KEYWORDS_FILE", os.path.join(DATA_DIR, ".pauta_aneel_keywords"))
 
 # === Registro de data/hora de execução no log ===
 def registrar_log(mensagem):
@@ -56,24 +65,8 @@ EMAIL_TO = ",".join(CONFIG.get("email", {}).get("recipients", []))
 BASE_URL = "https://www2.aneel.gov.br/aplicacoes_liferay/noticias_area/?idAreaNoticia=425"
 SITE_PREFIX = "https://www2.aneel.gov.br"
 
-# Função para carregar termos de pesquisa do arquivo externo, se existir
-def load_keywords():
-    if os.path.isfile(KEYWORDS_FILE):
-        try:
-            with open(KEYWORDS_FILE, "r") as f:
-                keywords = [line.strip() for line in f if line.strip()]
-                if keywords:
-                    return keywords
-        except Exception as e:
-            registrar_log(f"Erro ao ler {KEYWORDS_FILE}: {e}")
-    # fallback para lista padrão
-    return [
-        "consulta publica", "tomada de subsidio", "consulta externa", "audiencia publica",
-        "leilao", "isa energia", "cteep", "companhia de transmissao de energia eletrica paulista",
-        "interligacao eletrica"
-    ]
-
-KEYWORDS = load_keywords()
+# Termos de pesquisa obtidos do arquivo de configuração global
+KEYWORDS = CONFIG.get("keywords", {}).get("pauta", [])
 
 def normalize(s):
     if not isinstance(s, str):
