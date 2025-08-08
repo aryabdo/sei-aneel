@@ -731,6 +731,7 @@ class SEIAneel:
                             valor = "; ".join(lista_interessados)
                         if not valor:
                             valor = linha.text.replace(tds[0].text, "", 1).strip().replace("\n", "; ").replace("\r", "")
+
                         dados["Interessados"] = valor
                     else:
                         dados[chave] = valor
