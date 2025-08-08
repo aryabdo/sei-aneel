@@ -1310,7 +1310,7 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
         if not mudancas and not processos_falha:
             logger.info("Nenhuma mudança ou falha para notificar, email não enviado")
             return
-          
+
         def organizar_colunas(dados: Dict[str, str], campos: List[str], chave_ord: str) -> Dict[str, str]:
             listas = {c: [s.strip() for s in dados.get(c, '').splitlines() if s.strip()] for c in campos}
             total = max((len(v) for v in listas.values()), default=0)
@@ -1358,10 +1358,10 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
         """
         
         if mudancas:
-            corpo_html += """
+            corpo_html += f"""
             <div class="section">
-                <h3>📋 Mudanças Detectadas ({total})</h3>
-            """.format(total=len(mudancas))
+                <h3>📋 Mudanças Detectadas ({len(mudancas)})</h3>
+            """
             
             for mudanca in mudancas:
                 icone = "🔄" if mudanca['tipo_mudanca'] == 'andamento' else "📄" if mudanca['tipo_mudanca'] == 'documento' else "🆕"
@@ -1373,26 +1373,32 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
                         f"<tr><th>Tipo do processo</th><td>{dados.get('Tipo do processo', '')}</td></tr>",
                         f"<tr><th>Interessados</th><td>{dados.get('Interessados', '')}</td></tr>",
                     ]
-                    tabela_basica = "<table class=\"detalhes\">" + ''.join(linhas) + "</table>"
+
+                    tabela_basica = f"<table class=\"detalhes\">{''.join(linhas)}</table>"
+
                     doc_campos = ['Documento', 'Tipo do documento', 'Data do documento', 'Data de Inclusão', 'Unidade']
                     and_campos = ['Data/Hora do Andamento', 'Unidade do Andamento', 'Descrição do Andamento']
                     docs = organizar_colunas(dados, doc_campos, 'Data de Inclusão')
                     andamentos = organizar_colunas(dados, and_campos, 'Data/Hora do Andamento')
-                    tabela_colunas = (
-                        "<table class=\"detalhes\">"
-                        "<tr><th>Documento</th><th>Tipo do documento</th><th>Data do documento</th>"
-                        "<th>Data de Inclusão</th><th>Unidade</th>"
-                        "<th>Data/Hora do Andamento</th><th>Unidade do Andamento</th><th>Descrição do Andamento</th></tr>"
-                        f"<tr><td>{docs.get('Documento', '')}</td>"
-                        f"<td>{docs.get('Tipo do documento', '')}</td>"
-                        f"<td>{docs.get('Data do documento', '')}</td>"
-                        f"<td>{docs.get('Data de Inclusão', '')}</td>"
-                        f"<td>{docs.get('Unidade', '')}</td>"
-                        f"<td>{andamentos.get('Data/Hora do Andamento', '')}</td>"
-                        f"<td>{andamentos.get('Unidade do Andamento', '')}</td>"
-                        f"<td>{andamentos.get('Descrição do Andamento', '')}</td></tr>"
-                        "</table>"
-                    )
+                    tabela_colunas = f"""
+                    <table class=\"detalhes\">
+                        <tr>
+                            <th>Documento</th><th>Tipo do documento</th><th>Data do documento</th>
+                            <th>Data de Inclusão</th><th>Unidade</th>
+                            <th>Data/Hora do Andamento</th><th>Unidade do Andamento</th><th>Descrição do Andamento</th>
+                        </tr>
+                        <tr>
+                            <td>{docs.get('Documento', '')}</td>
+                            <td>{docs.get('Tipo do documento', '')}</td>
+                            <td>{docs.get('Data do documento', '')}</td>
+                            <td>{docs.get('Data de Inclusão', '')}</td>
+                            <td>{docs.get('Unidade', '')}</td>
+                            <td>{andamentos.get('Data/Hora do Andamento', '')}</td>
+                            <td>{andamentos.get('Unidade do Andamento', '')}</td>
+                            <td>{andamentos.get('Descrição do Andamento', '')}</td>
+                        </tr>
+                    </table>
+                    """
                     detalhes_html = tabela_basica + tabela_colunas
                 corpo_html += f"""
                 <div class="mudanca">
@@ -1404,18 +1410,17 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
             corpo_html += "</div>"
         
         if processos_falha:
-            corpo_html += """
+            corpo_html += f"""
             <div class="section">
-                <h3>⚠️ Processos com erro ou não localizados ({total})</h3>
-            """.format(total=len(processos_falha))
-
+                <h3>⚠️ Processos com erro ou não localizados ({len(processos_falha)})</h3>
+            """
             for processo in processos_falha:
-                corpo_html += """
+                corpo_html += f"""
                 <div class="falha">
                     ❌ <span class="processo">{processo}</span><br>
                     <span class="tipo">Erro no processamento ou processo não localizado - requer atenção manual</span>
                 </div>
-                """.format(processo=processo)
+                """
             corpo_html += "</div>"
         
         corpo_html += """
