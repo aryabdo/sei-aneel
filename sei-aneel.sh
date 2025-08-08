@@ -136,6 +136,7 @@ PAUTA_LOG_FILE="$DIR/logs/pauta_aneel.log"
 XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/tmp}
 set +a
 python3 "$DIR/pauta_aneel.py" "$@"
+
 RUN
   chmod +x "$PAUTA_DIR/run.sh"
 
@@ -283,6 +284,7 @@ CFG
 
   cat <<'RUN' > "$SORTEIO_DIR/run.sh"
 #!/bin/bash
+
 DIR="$(dirname "$0")"
 cd "$DIR"
 set -a
@@ -291,6 +293,7 @@ SORTEIO_DATA_DIR="$DIR"
 SORTEIO_LOG_FILE="$DIR/logs/sorteio_aneel.log"
 set +a
 python3 "$DIR/sorteio_aneel.py" "$@"
+
 RUN
   chmod +x "$SORTEIO_DIR/run.sh"
 

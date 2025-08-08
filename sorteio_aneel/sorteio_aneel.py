@@ -21,7 +21,6 @@ LOG_FILE = os.environ.get("SORTEIO_LOG_FILE", os.path.join(DATA_DIR, "sorteio_an
 KEYWORDS_FILE = os.environ.get("KEYWORDS_FILE", os.path.join(DATA_DIR, ".sorteio_aneel_keywords"))
 
 # === Registro de data/hora de execução no log ===
-
 def registrar_log(mensagem):
     try:
         with open(LOG_FILE, "a") as f:
