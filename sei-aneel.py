@@ -718,7 +718,7 @@ class SEIAneel:
                 if len(tds) == 2:
                     chave = tds[0].text.strip().replace(":", "")
                     valor = tds[1].text.strip().replace("\n", " ").replace("\r", "")
-                    
+
                     # Tratamento especial para interessados
                     if chave.lower() == "interessados":
                         subelementos = tds[1].find_elements(By.XPATH, ".//*")
@@ -729,8 +729,27 @@ class SEIAneel:
                                 if texto and texto not in lista_interessados:
                                     lista_interessados.append(texto)
                             valor = "; ".join(lista_interessados)
-                    
+
                     dados[chave] = valor
+
+            # Garantir captura da coluna Interessados
+            if 'Interessados' not in dados:
+                try:
+                    celula = tabela.find_element(By.XPATH, ".//td[@width='20%'][contains(normalize-space(), 'Interessados')]")
+                    valor_td = celula.find_element(By.XPATH, "following-sibling::td[1]")
+                    subelementos = valor_td.find_elements(By.XPATH, ".//*")
+                    if subelementos:
+                        lista_interessados = []
+                        for elem in subelementos:
+                            texto = elem.text.strip()
+                            if texto and texto not in lista_interessados:
+                                lista_interessados.append(texto)
+                        valor = "; ".join(lista_interessados)
+                    else:
+                        valor = valor_td.text.strip().replace("\n", " ").replace("\r", "")
+                    dados['Interessados'] = valor
+                except Exception as e:
+                    self.logger.error(f"Erro ao extrair interessados: {e}")
         except Exception as e:
             self.logger.error(f"Erro ao extrair detalhes do processo: {e}")
         
@@ -1254,16 +1273,18 @@ def verificar_e_enviar_notificacoes(planilha_handler: PlanilhaHandler,
                     mudancas_detectadas.append({
                         'processo': linha[0],
                         'tipo_mudanca': 'andamento',
-                        'descricao': 'Novos andamentos detectados'
+                        'descricao': 'Novos andamentos detectados',
+                        'dados_linha': dict(zip(cabecalho, linha))
                     })
                     logger.info(f"Mudança de andamento detectada no processo {linha[0]}")
-                
+
                 # Compara documentos
                 elif dados_processo['documentos_nr'] != dados_anteriores.get('documentos_nr', ''):
                     mudancas_detectadas.append({
                         'processo': linha[0],
                         'tipo_mudanca': 'documento',
-                        'descricao': 'Novos documentos detectados'
+                        'descricao': 'Novos documentos detectados',
+                        'dados_linha': dict(zip(cabecalho, linha))
                     })
                     logger.info(f"Mudança de documento detectada no processo {linha[0]}")
             else:
@@ -1271,7 +1292,8 @@ def verificar_e_enviar_notificacoes(planilha_handler: PlanilhaHandler,
                 mudancas_detectadas.append({
                     'processo': linha[0],
                     'tipo_mudanca': 'novo',
-                    'descricao': 'Processo adicionado ao monitoramento'
+                    'descricao': 'Processo adicionado ao monitoramento',
+                    'dados_linha': dict(zip(cabecalho, linha))
                 })
                 logger.info(f"Novo processo detectado: {linha[0]}")
         
@@ -1299,81 +1321,125 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
         smtp_config = config.get('smtp', {})
         email_config = config.get('email', {})
         
-        if not all([smtp_config.get('server'), smtp_config.get('user'), 
+        if not all([smtp_config.get('server'), smtp_config.get('user'),
                    smtp_config.get('password'), email_config.get('recipients')]):
             logger.warning("Configurações de email incompletas, pulando envio")
             return
-        
+
+        if not mudancas and not processos_falha:
+            logger.info("Nenhuma mudança ou falha para notificar, email não enviado")
+            return
+
+        def organizar_colunas(dados: Dict[str, str], campos: List[str], chave_ord: str) -> Dict[str, str]:
+            listas = {c: [s.strip() for s in dados.get(c, '').splitlines() if s.strip()] for c in campos}
+            total = max((len(v) for v in listas.values()), default=0)
+            registros = []
+            for i in range(total):
+                registros.append({c: listas[c][i] if i < len(listas[c]) else '' for c in campos})
+
+            def parse_data(valor: str):
+                for fmt in ('%d/%m/%Y %H:%M:%S', '%d/%m/%Y %H:%M', '%d/%m/%Y'):
+                    try:
+                        return datetime.strptime(valor, fmt)
+                    except ValueError:
+                        continue
+                return datetime.min
+
+            registros.sort(key=lambda r: parse_data(r.get(chave_ord, '')), reverse=True)
+            return {c: '<br>'.join(r[c] for r in registros if r[c]) for c in campos}
+
         # Prepara conteúdo do email
         assunto = f"SEI ANEEL - Relatório de Monitoramento ({datetime.now().strftime('%d/%m/%Y %H:%M')})"
         
-        corpo_html = """
+        timestamp_str = datetime.now().strftime('%d/%m/%Y às %H:%M:%S')
+        corpo_html = f"""
         <html>
         <head>
             <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                .header { color: #2c5aa0; border-bottom: 2px solid #2c5aa0; padding-bottom: 10px; }
-                .section { margin: 20px 0; }
-                .mudanca { background-color: #e8f4f8; border-left: 4px solid #2c5aa0; padding: 10px; margin: 5px 0; }
-                .falha { background-color: #f8e8e8; border-left: 4px solid #d32f2f; padding: 10px; margin: 5px 0; }
-                .processo { font-weight: bold; color: #1976d2; }
-                .tipo { color: #666; font-style: italic; }
-                .timestamp { color: #888; font-size: 0.9em; }
+                body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                .header {{ color: #2c5aa0; border-bottom: 2px solid #2c5aa0; padding-bottom: 10px; }}
+                .section {{ margin: 20px 0; }}
+                .mudanca {{ background-color: #e8f4f8; border-left: 4px solid #2c5aa0; padding: 10px; margin: 5px 0; }}
+                .falha {{ background-color: #f8e8e8; border-left: 4px solid #d32f2f; padding: 10px; margin: 5px 0; }}
+                .processo {{ font-weight: bold; color: #1976d2; }}
+                .tipo {{ color: #666; font-style: italic; }}
+                .timestamp {{ color: #888; font-size: 0.9em; }}
+                table.detalhes {{ border-collapse: collapse; margin-top: 5px; }}
+                table.detalhes th, table.detalhes td {{ border: 1px solid #ddd; padding: 4px 8px; text-align: left; vertical-align: top; font-size: 0.9em; }}
+                table.detalhes th {{ background-color: #f0f0f0; }}
             </style>
         </head>
         <body>
             <div class="header">
                 <h2>Relatório de Monitoramento SEI ANEEL</h2>
-                <div class="timestamp">Gerado em: {timestamp}</div>
+                <div class="timestamp">Gerado em: {timestamp_str}</div>
             </div>
-        """.format(timestamp=datetime.now().strftime('%d/%m/%Y às %H:%M:%S'))
+        """
         
         if mudancas:
-            corpo_html += """
+            corpo_html += f"""
             <div class="section">
-                <h3>📋 Mudanças Detectadas ({total})</h3>
-            """.format(total=len(mudancas))
+                <h3>📋 Mudanças Detectadas ({len(mudancas)})</h3>
+            """
             
             for mudanca in mudancas:
                 icone = "🔄" if mudanca['tipo_mudanca'] == 'andamento' else "📄" if mudanca['tipo_mudanca'] == 'documento' else "🆕"
-                corpo_html += """
+                detalhes_html = ""
+                dados = mudanca.get('dados_linha', {})
+                if dados:
+                    linhas = [
+                        f"<tr><th>PROCESSOS</th><td>{mudanca['processo']}</td></tr>",
+                        f"<tr><th>Tipo do processo</th><td>{dados.get('Tipo do processo', '')}</td></tr>",
+                        f"<tr><th>Interessados</th><td>{dados.get('Interessados', '')}</td></tr>",
+                    ]
+                    tabela_basica = f"<table class=\"detalhes\">{''.join(linhas)}</table>"
+                    doc_campos = ['Documento', 'Tipo do documento', 'Data do documento', 'Data de Inclusão', 'Unidade']
+                    and_campos = ['Data/Hora do Andamento', 'Unidade do Andamento', 'Descrição do Andamento']
+                    docs = organizar_colunas(dados, doc_campos, 'Data de Inclusão')
+                    andamentos = organizar_colunas(dados, and_campos, 'Data/Hora do Andamento')
+                    tabela_colunas = f"""
+                    <table class=\"detalhes\">
+                        <tr>
+                            <th>Documento</th><th>Tipo do documento</th><th>Data do documento</th>
+                            <th>Data de Inclusão</th><th>Unidade</th>
+                            <th>Data/Hora do Andamento</th><th>Unidade do Andamento</th><th>Descrição do Andamento</th>
+                        </tr>
+                        <tr>
+                            <td>{docs.get('Documento', '')}</td>
+                            <td>{docs.get('Tipo do documento', '')}</td>
+                            <td>{docs.get('Data do documento', '')}</td>
+                            <td>{docs.get('Data de Inclusão', '')}</td>
+                            <td>{docs.get('Unidade', '')}</td>
+                            <td>{andamentos.get('Data/Hora do Andamento', '')}</td>
+                            <td>{andamentos.get('Unidade do Andamento', '')}</td>
+                            <td>{andamentos.get('Descrição do Andamento', '')}</td>
+                        </tr>
+                    </table>
+                    """
+                    detalhes_html = tabela_basica + tabela_colunas
+                corpo_html += f"""
                 <div class="mudanca">
-                    {icone} <span class="processo">{processo}</span><br>
-                    <span class="tipo">{tipo}: {descricao}</span>
+                    {icone} <span class="processo">{mudanca['processo']}</span><br>
+                    <span class="tipo">{mudanca['tipo_mudanca'].title()}: {mudanca['descricao']}</span>
+                    {detalhes_html}
                 </div>
-                """.format(
-                    icone=icone,
-                    processo=mudanca['processo'],
-                    tipo=mudanca['tipo_mudanca'].title(),
-                    descricao=mudanca['descricao']
-                )
+                """
             corpo_html += "</div>"
         
         if processos_falha:
-            corpo_html += """
+            corpo_html += f"""
             <div class="section">
-                <h3>⚠️ Processos com Falha ({total})</h3>
-            """.format(total=len(processos_falha))
-            
+                <h3>⚠️ Processos com erro ou não localizados ({len(processos_falha)})</h3>
+            """
+
             for processo in processos_falha:
-                corpo_html += """
+                corpo_html += f"""
                 <div class="falha">
                     ❌ <span class="processo">{processo}</span><br>
-                    <span class="tipo">Falha no processamento - requer atenção manual</span>
+                    <span class="tipo">Erro no processamento ou processo não localizado - requer atenção manual</span>
                 </div>
-                """.format(processo=processo)
+                """
             corpo_html += "</div>"
-        
-        if not mudancas and not processos_falha:
-            corpo_html += """
-            <div class="section">
-                <h3>✅ Status do Sistema</h3>
-                <div style="padding: 15px; background-color: #e8f5e8; border-left: 4px solid #4caf50;">
-                    Todos os processos foram processados com sucesso.<br>
-                    Nenhuma mudança detectada nos processos monitorados.
-                </div>
-            </div>
-            """
         
         corpo_html += """
             <div class="section">
@@ -1384,26 +1450,31 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
         """
         
         # Configura e envia email
+        recipients = [r.strip() for r in email_config.get('recipients', []) if r.strip()]
+        if not recipients:
+            logger.warning("Nenhum destinatário de email configurado, pulando envio")
+            return
+
         msg = MIMEMultipart('alternative')
         msg['Subject'] = assunto
         msg['From'] = smtp_config['user']
-        msg['To'] = ', '.join(email_config['recipients'])
-        
+        msg['To'] = ', '.join(recipients)
+
         # Adiciona versão HTML
         parte_html = MIMEText(corpo_html, 'html', 'utf-8')
         msg.attach(parte_html)
-        
+
         # Envia email
         server = smtplib.SMTP(smtp_config['server'], smtp_config.get('port', 587))
         if smtp_config.get('starttls', False):
             server.starttls()
         server.login(smtp_config['user'], smtp_config['password'])
-        
+
         text = msg.as_string()
-        server.sendmail(smtp_config['user'], email_config['recipients'], text)
+        server.sendmail(smtp_config['user'], recipients, text)
         server.quit()
-        
-        logger.info(f"Email de notificação enviado para {len(email_config['recipients'])} destinatário(s)")
+
+        logger.info(f"Email de notificação enviado para {len(recipients)} destinatário(s)")
         
     except Exception as e:
         logger.error(f"Erro ao enviar email de notificação: {e}")
