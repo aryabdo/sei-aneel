@@ -8,6 +8,8 @@
 
 **Sistema de automação interativo para monitoramento de processos SEI ANEEL com interface colorida, resolução automática de CAPTCHA e integração com Google Sheets.**
 
+Além do monitoramento de processos, o projeto inclui os utilitários **pauta_aneel** e **sorteio_aneel**.  Todos os módulos podem ser instalados e gerenciados pelo script `sei-aneel.sh`, que apresenta um menu principal para instalar, atualizar, configurar, executar manualmente ou agendar cada ferramenta. Cada utilitário grava seus logs em `/opt/pauta-aneel/logs` e `/opt/sorteio-aneel/logs`, evitando erros de permissão em `/tmp`.
+
 [🚀 Instalação Rápida](#instalação-rápida) •
 [🎮 Demo Interativo](#demo-interativo) •
 [📖 Documentação](#documentação) •
@@ -56,6 +58,13 @@ python demo_interactive.py
 - Controles interativos
 
 ## 🚀 Instalação Rápida
+
+### Ubuntu 24.04+
+```bash
+git clone https://github.com/aryabdo/sei-aneel.git
+cd sei-aneel
+bash sei-aneel.sh
+```
 
 ### Método 1: Windows (PowerShell - Recomendado)
 ```powershell
