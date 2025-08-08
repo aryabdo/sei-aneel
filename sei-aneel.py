@@ -720,7 +720,7 @@ class SEIAneel:
                     valor = tds[1].text.strip().replace("\n", " ").replace("\r", "")
 
                     # Tratamento especial para interessados
-                    if chave.lower() == "interessados":
+                    if chave.lower().startswith("interessado"):
                         subelementos = tds[1].find_elements(By.XPATH, ".//*")
                         if subelementos:
                             lista_interessados = []
@@ -729,24 +729,38 @@ class SEIAneel:
                                 if texto and texto not in lista_interessados:
                                     lista_interessados.append(texto)
                             valor = "; ".join(lista_interessados)
-
-                    dados[chave] = valor
+                        if not valor:
+                            valor = linha.text.replace(tds[0].text, "", 1).strip().replace("\n", "; ").replace("\r", "")
+                        dados["Interessados"] = valor
+                    else:
+                        dados[chave] = valor
 
             # Garantir captura da coluna Interessados
-            if 'Interessados' not in dados:
+            if 'Interessados' not in dados or not dados.get('Interessados'):
                 try:
-                    celula = tabela.find_element(By.XPATH, ".//td[@width='20%'][contains(normalize-space(), 'Interessados')]")
-                    valor_td = celula.find_element(By.XPATH, "following-sibling::td[1]")
-                    subelementos = valor_td.find_elements(By.XPATH, ".//*")
-                    if subelementos:
-                        lista_interessados = []
-                        for elem in subelementos:
-                            texto = elem.text.strip()
-                            if texto and texto not in lista_interessados:
-                                lista_interessados.append(texto)
-                        valor = "; ".join(lista_interessados)
-                    else:
-                        valor = valor_td.text.strip().replace("\n", " ").replace("\r", "")
+                    # Procura por qualquer célula que contenha o rótulo de interessados
+                    celula = tabela.find_element(
+                        By.XPATH,
+                        ".//td[contains(translate(normalize-space(), 'INTERESSADO', 'interessado'), 'interessado')]"
+                    )
+                    valor = ""
+                    try:
+                        valor_td = celula.find_element(By.XPATH, "following-sibling::td[1]")
+                        subelementos = valor_td.find_elements(By.XPATH, ".//*")
+                        if subelementos:
+                            lista_interessados = []
+                            for elem in subelementos:
+                                texto = elem.text.strip()
+                                if texto and texto not in lista_interessados:
+                                    lista_interessados.append(texto)
+                            valor = "; ".join(lista_interessados)
+                        else:
+                            valor = valor_td.text.strip().replace("\n", " ").replace("\r", "")
+                    except Exception:
+                        pass
+                    if not valor:
+                        linha = celula.find_element(By.XPATH, "..")
+                        valor = linha.text.replace(celula.text, "", 1).strip().replace("\n", "; ").replace("\r", "")
                     dados['Interessados'] = valor
                 except Exception as e:
                     self.logger.error(f"Erro ao extrair interessados: {e}")
