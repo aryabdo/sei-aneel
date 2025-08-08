@@ -899,8 +899,14 @@ class PlanilhaHandler:
         """Obtém todos os valores da planilha"""
         def _get_values():
             return self.sheet.get_all_values()
-        
+
         return operacao_com_retry(_get_values, logger=self.logger)
+
+    def get_cell_value(self, row: int, col: int) -> str:
+        """Obtém valor de uma célula específica"""
+        def _get_cell():
+            return self.sheet.cell(row, col).value
+        return operacao_com_retry(_get_cell, logger=self.logger)
 
 def main() -> List[Dict[str, str]]:
     """
@@ -1221,10 +1227,26 @@ def processar_processo(proc: str, driver, planilha_handler: PlanilhaHandler,
             and_unids,
             and_descrs,
         ]
-        
+
         if ui:
             print(f"{Fore.CYAN}  💾 Salvando na planilha...")
-        status = planilha_handler.atualizar_ou_inserir_processo(linha, detalhes.get("Processo", ""))
+        status_inicial = None
+        col_c_val = ""
+        for tentativa in range(2):
+            status_atual = planilha_handler.atualizar_ou_inserir_processo(linha, detalhes.get("Processo", ""))
+            if status_inicial is None:
+                status_inicial = status_atual
+            row_idx = planilha_handler.find_row_by_proc_number(detalhes.get("Processo", ""))
+            if row_idx:
+                valor = planilha_handler.get_cell_value(row_idx, 3)
+                if valor and valor.strip():
+                    col_c_val = valor
+                    break
+            if tentativa == 0:
+                logger.warning(f"Coluna C vazia para {detalhes.get('Processo','')}, tentando novamente...")
+        if not col_c_val:
+            logger.warning(f"Coluna C permaneceu vazia para {detalhes.get('Processo','')} após 2 tentativas.")
+        status = status_inicial if status_inicial else status_atual
         sei.captcha_handler.limpar_captchas()
         
         status_msg = "✅ Atualizado" if status == "atualizado" else "📝 Inserido" if status == "inserido" else "❌ Falha"
