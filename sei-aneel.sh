@@ -1,4 +1,12 @@
 #!/bin/bash
+# Cores para saída colorida
+RED='\e[31m'
+GREEN='\e[32m'
+YELLOW='\e[33m'
+BLUE='\e[34m'
+CYAN='\e[36m'
+NC='\e[0m'
+
 SCRIPT_DIR="/opt/sei-aneel"
 CONFIG_DIR="$SCRIPT_DIR/config"
 CONFIG_FILE="$CONFIG_DIR/configs.json"
@@ -63,7 +71,7 @@ install_sei() {
 CFG
 
   (crontab -l 2>/dev/null | grep -v 'sei-aneel.py'; echo "0 5,13,16 * * * /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1") | crontab -
-  echo "Instalação concluída."
+  echo -e "${GREEN}Instalação concluída.${NC}"
 }
 
 update_sei() {
@@ -73,13 +81,13 @@ update_sei() {
   sudo chown "$USER":"$USER" "$SCRIPT_DIR/sei-aneel.py" "$SCRIPT_DIR/sei-aneel.sh"
 
   rm -rf "$TMP_DIR"
-  echo "Atualização concluída."
+  echo -e "${GREEN}Atualização concluída.${NC}"
 }
 
 remove_sei() {
   crontab -l 2>/dev/null | grep -v 'sei-aneel.py' | crontab -
   sudo rm -rf "$SCRIPT_DIR"
-  echo "Remoção concluída."
+  echo -e "${GREEN}Remoção concluída.${NC}"
 }
 
 config_twocaptcha() {
@@ -139,19 +147,19 @@ PY
 
 configure_sei() {
   while true; do
-    echo "1) Configurar 2captcha"
-    echo "2) Configurar SMTP"
-    echo "3) Configurar Google Drive"
-    echo "4) Configurar tentativas"
-    echo "5) Voltar"
-    read -p "Opção: " op
+    echo -e "${CYAN}1) Configurar 2captcha${NC}"
+    echo -e "${CYAN}2) Configurar SMTP${NC}"
+    echo -e "${CYAN}3) Configurar Google Drive${NC}"
+    echo -e "${CYAN}4) Configurar tentativas${NC}"
+    echo -e "${CYAN}5) Voltar${NC}"
+    read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) config_twocaptcha ;;
       2) config_smtp ;;
       3) config_google ;;
       4) config_exec ;;
       5) break ;;
-      *) echo "Opção inválida" ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
 }
@@ -194,50 +202,52 @@ PY
 
 manage_emails() {
   while true; do
-    echo "1) Listar"
-    echo "2) Adicionar"
-    echo "3) Remover"
-    echo "4) Voltar"
-    read -p "Opção: " op
+    echo -e "${CYAN}1) Listar${NC}"
+    echo -e "${CYAN}2) Adicionar${NC}"
+    echo -e "${CYAN}3) Remover${NC}"
+    echo -e "${CYAN}4) Voltar${NC}"
+    read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) list_emails "$CONFIG_FILE" ;;
       2) add_email ;;
       3) remove_email ;;
       4) break ;;
-      *) echo "Opção inválida" ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
 }
 
 manage_processes_menu() {
   while true; do
-    echo "1) Adicionar processo"
-    echo "2) Remover processo"
-    echo "3) Atualizar processo"
-    echo "4) Voltar"
-    read -p "Opção: " op
+    echo -e "${CYAN}1) Adicionar processo${NC}"
+    echo -e "${CYAN}2) Remover processo${NC}"
+    echo -e "${CYAN}3) Atualizar processo${NC}"
+    echo -e "${CYAN}4) Voltar${NC}"
+    read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) read -p "Número: " N; python3 "$SCRIPT_DIR/manage_processes.py" add "$N" ;;
       2) read -p "Número: " N; python3 "$SCRIPT_DIR/manage_processes.py" remove "$N" ;;
       3) read -p "Número antigo: " O; read -p "Número novo: " N; python3 "$SCRIPT_DIR/manage_processes.py" update "$O" "$N" ;;
       4) break ;;
-      *) echo "Opção inválida" ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
 }
 
 force_run() {
   while true; do
-    echo "1) Executar todos os processos"
-    echo "2) Executar processos específicos"
-    echo "3) Voltar"
-    read -p "Opção: " op
+    echo -e "${CYAN}1) Executar todos os processos${NC}"
+    echo -e "${CYAN}2) Executar processos específicos${NC}"
+    echo -e "${CYAN}3) Enviar tabela por email${NC}"
+    echo -e "${CYAN}4) Voltar${NC}"
+    read -p $'\e[33mOpção: \e[0m' op
     log_file="$LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
     case $op in
       1) python3 "$SCRIPT_DIR/sei-aneel.py" | tee "$log_file" ;;
-      2) read -p "Número(s) de processo (separados por espaço): " PROC; python3 "$SCRIPT_DIR/sei-aneel.py" --processo $PROC | tee "$log_file" ;;
-      3) break ;;
-      *) echo "Opção inválida" ;;
+      2) read -p $'\e[33mNúmero(s) de processo (separados por espaço): \e[0m' PROC; python3 "$SCRIPT_DIR/sei-aneel.py" --processo $PROC | tee "$log_file" ;;
+      3) python3 "$SCRIPT_DIR/sei-aneel.py" --email-tabela | tee "$log_file" ;;
+      4) break ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
 }
@@ -246,36 +256,36 @@ schedule_cron() {
   read -p "Dias da semana [*]: " D; D=${D:-*}
   read -p "Horas (ex: 5,13,16): " H
   (crontab -l 2>/dev/null | grep -v 'sei-aneel.py'; echo "0 $H * * $D /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1") | crontab -
-  echo "Cron agendado."
+  echo -e "${GREEN}Cron agendado.${NC}"
 }
 
 remove_cron() {
   crontab -l 2>/dev/null | grep -v 'sei-aneel.py' | crontab -
-  echo "Cron removido."
+  echo -e "${GREEN}Cron removido.${NC}"
 }
 
 cron_menu() {
   while true; do
-    echo "1) Agendar/Alterar cron"
-    echo "2) Remover cron"
-    echo "3) Voltar"
-    read -p "Opção: " op
+    echo -e "${CYAN}1) Agendar/Alterar cron${NC}"
+    echo -e "${CYAN}2) Remover cron${NC}"
+    echo -e "${CYAN}3) Voltar${NC}"
+    read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) schedule_cron ;;
       2) remove_cron ;;
       3) break ;;
-      *) echo "Opção inválida" ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
 }
 
 view_logs() {
   if [ -d "$LOG_DIR" ]; then
-    ls -1 "$LOG_DIR"
-    read -p "Arquivo de log para visualizar: " LOGF
-    [ -f "$LOG_DIR/$LOGF" ] && less "$LOG_DIR/$LOGF" || echo "Arquivo não encontrado."
+    ls -1 --color=always "$LOG_DIR"
+    read -p $'\e[33mArquivo de log para visualizar: \e[0m' LOGF
+    [ -f "$LOG_DIR/$LOGF" ] && less -R "$LOG_DIR/$LOGF" || echo -e "${RED}Arquivo não encontrado.${NC}"
   else
-    echo "Diretório de logs inexistente."
+    echo -e "${RED}Diretório de logs inexistente.${NC}"
   fi
 }
 
@@ -285,18 +295,18 @@ test_connectivity() {
 
 menu() {
   while true; do
-    echo "1) Instalar"
-    echo "2) Atualizar"
-    echo "3) Remover"
-    echo "4) Configurar"
-    echo "5) Gerenciar emails"
-    echo "6) Gerenciar processos"
-    echo "7) Testar conectividade"
-    echo "8) Executar forçado"
-    echo "9) Gerenciar cron"
-    echo "10) Ver logs"
-    echo "11) Sair"
-    read -p "Opção: " OP
+    echo -e "${CYAN}1) Instalar${NC}"
+    echo -e "${CYAN}2) Atualizar${NC}"
+    echo -e "${CYAN}3) Remover${NC}"
+    echo -e "${CYAN}4) Configurar${NC}"
+    echo -e "${CYAN}5) Gerenciar emails${NC}"
+    echo -e "${CYAN}6) Gerenciar processos${NC}"
+    echo -e "${CYAN}7) Testar conectividade${NC}"
+    echo -e "${CYAN}8) Executar forçado${NC}"
+    echo -e "${CYAN}9) Gerenciar cron${NC}"
+    echo -e "${CYAN}10) Ver logs${NC}"
+    echo -e "${CYAN}11) Sair${NC}"
+    read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
       1) install_sei ;;
       2) update_sei ;;
@@ -309,7 +319,7 @@ menu() {
       9) cron_menu ;;
       10) view_logs ;;
       11) exit 0 ;;
-      *) echo "Opção inválida" ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
 }
