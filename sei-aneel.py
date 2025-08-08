@@ -1310,7 +1310,7 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
         if not mudancas and not processos_falha:
             logger.info("Nenhuma mudança ou falha para notificar, email não enviado")
             return
-
+          
         def organizar_colunas(dados: Dict[str, str], campos: List[str], chave_ord: str) -> Dict[str, str]:
             listas = {c: [s.strip() for s in dados.get(c, '').splitlines() if s.strip()] for c in campos}
             total = max((len(v) for v in listas.values()), default=0)

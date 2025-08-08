@@ -68,9 +68,19 @@ CFG
 
 update_sei() {
   TMP_DIR=$(mktemp -d)
-  git clone "$REPO_URL" "$TMP_DIR" >/dev/null 2>&1
-  sudo cp "$TMP_DIR/sei-aneel.py" "$TMP_DIR/sei-aneel.sh" "$SCRIPT_DIR/"
-  sudo chown "$USER":"$USER" "$SCRIPT_DIR/sei-aneel.py" "$SCRIPT_DIR/sei-aneel.sh"
+  git clone "$REPO_URL" "$TMP_DIR"
+  REQS_CHANGED=0
+  if [ ! -f "$SCRIPT_DIR/requirements.txt" ] || \
+     ! cmp -s "$TMP_DIR/requirements.txt" "$SCRIPT_DIR/requirements.txt"; then
+    REQS_CHANGED=1
+  fi
+  sudo cp "$TMP_DIR/sei-aneel.py" "$TMP_DIR/manage_processes.py" \
+          "$TMP_DIR/test_connectivity.py" "$TMP_DIR/sei-aneel.sh" \
+          "$TMP_DIR/requirements.txt" "$SCRIPT_DIR/"
+  if [ $REQS_CHANGED -eq 1 ]; then
+    sudo pip3 install --break-system-packages -r "$SCRIPT_DIR/requirements.txt"
+  fi
+  sudo chown -R "$USER":"$USER" "$SCRIPT_DIR"
   rm -rf "$TMP_DIR"
   echo "Atualização concluída."
 }
