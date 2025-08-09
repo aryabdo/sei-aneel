@@ -16,6 +16,7 @@ import tempfile
 import subprocess
 import json
 from pathlib import Path
+import html
 
 # Garante que o diretório raiz do projeto esteja no ``PYTHONPATH``.
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -72,6 +73,30 @@ def palavra_chave_no_texto(texto, palavras_chave):
         if chave_norm in texto_norm or chave_norm + "s" in texto_norm:
             return True
     return False
+
+
+def format_html_email(title, content_html):
+    timestamp_str = datetime.now().strftime('%d/%m/%Y às %H:%M:%S')
+    return f"""<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        .header {{ color: #2c5aa0; border-bottom: 2px solid #2c5aa0; padding-bottom: 10px; }}
+        .section {{ margin: 20px 0; }}
+        .item {{ background-color: #e8f4f8; border-left: 4px solid #2c5aa0; padding: 10px; margin: 5px 0; }}
+        .timestamp {{ color: #888; font-size: 0.9em; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>{title}</h2>
+        <div class="timestamp">Gerado em: {timestamp_str}</div>
+    </div>
+    {content_html}
+    <div class="section">
+        <p><small>Este é um email automático do sistema de monitoramento SEI ANEEL.</small></p>
+    </div>
+</body></html>"""
 
 def parse_date(date_str):
     try:
@@ -238,12 +263,13 @@ def main():
         print("Nenhum link associado à data encontrada.")
         subject = f"{hoje_str} Busca Sorteio ANEEL - Nenhuma data encontrada"
         body = "Nao encontrado sorteio para data indicada! Atenciosamente, Ary Abdo!"
-        body_html = (
-            "<html><body style='font-family: Arial, sans-serif;'>"
+        content_html = (
+            "<div class=\"section\">"
             "<p>Nao encontrado sorteio para data indicada!</p>"
             "<p>Atenciosamente,<br>Ary Abdo</p>"
-            "</body></html>"
+            "</div>"
         )
+        body_html = format_html_email("Sorteio ANEEL", content_html)
         if execucao_manual:
             send_email(subject, body, body_html)
         registrar_log("Nenhum link associado à data encontrada. Nenhum e-mail enviado.")
@@ -273,23 +299,25 @@ def main():
             + "\n\n".join(items)
             + "\n\nAtenciosamente,\nAry Abdo"
         )
-        body_html = (
-            "<html><body style='font-family: Arial, sans-serif;'>"
-            "<p>Foram encontrados os processos listados abaixo no sorteio realizado pela ANEEL:</p>"
+        content_html = (
+            "<div class=\"section\">"
+            f"<h3>📋 Processos Encontrados ({len(items)})</h3>"
             "<ul>"
         )
         for item in items:
-            body_html += f"<li>{item}</li>"
+            content_html += f"<li class=\"item\">{html.escape(item)}</li>"
             registrar_log(f"Processo encontrado: {item}")
-        body_html += "</ul><p>Atenciosamente,<br>Ary Abdo</p></body></html>"
+        content_html += "</ul><p>Atenciosamente,<br>Ary Abdo</p></div>"
+        body_html = format_html_email("Sorteio ANEEL", content_html)
     else:
         body = "Ola! Nao foram encontrados processos sorteados na data de pesquisa!\n\nAtenciosamente, Ary Abdo!"
-        body_html = (
-            "<html><body style='font-family: Arial, sans-serif;'>"
+        content_html = (
+            "<div class=\"section\">"
             "<p>Ola! Nao foram encontrados processos sorteados na data de pesquisa!</p>"
             "<p>Atenciosamente,<br>Ary Abdo</p>"
-            "</body></html>"
+            "</div>"
         )
+        body_html = format_html_email("Sorteio ANEEL", content_html)
         registrar_log("Nenhum processo relevante encontrado.")
 
     print("Itens relevantes encontrados:" if items else "Nenhum item relevante encontrado.")
