@@ -814,7 +814,6 @@ class SEIAneel:
         except Exception as e:
             self.logger.debug(f"Falha ao extrair link de documento: {e}")
         return ""
-
     def extrair_lista_protocolos_concatenado(self) -> Tuple[str, str, str, str, str, str]:
         """Extrai lista de protocolos/documentos"""
         try:
@@ -834,7 +833,9 @@ class SEIAneel:
                     doc_unidades.append(tds[5].text.strip())
                     try:
                         link_elem = tds[1].find_element(By.TAG_NAME, "a")
+
                         doc_links.append(self._extrair_link_documento(link_elem))
+
                     except Exception:
                         doc_links.append("")
 
