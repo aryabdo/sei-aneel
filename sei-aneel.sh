@@ -34,8 +34,9 @@ install_sei() {
   read -p "Emails destinatários (separados por vírgula): " EMAILS
 
   sudo rm -rf "$SCRIPT_DIR"
-  sudo mkdir -p "$CONFIG_DIR" "$LOG_DIR"
-  sudo cp sei-aneel.py manage_processes.py test_connectivity.py requirements.txt "$SCRIPT_DIR/"
+  sudo mkdir -p "$SCRIPT_DIR" "$LOG_DIR"
+  sudo cp -r config "$SCRIPT_DIR/"
+  sudo cp sei-aneel.py manage_processes.py backup_manager.py test_connectivity.py requirements.txt "$SCRIPT_DIR/"
   sudo cp "$CRED" "$CONFIG_DIR/credentials.json"
   sudo chown -R "$USER":"$USER" "$SCRIPT_DIR"
 
@@ -86,8 +87,9 @@ CFG
 update_sei() {
   TMP_DIR=$(mktemp -d)
   git clone "$REPO_URL" "$TMP_DIR" >/dev/null 2>&1
-  sudo cp "$TMP_DIR/sei-aneel.py" "$TMP_DIR/sei-aneel.sh" "$SCRIPT_DIR/"
-  sudo chown "$USER":"$USER" "$SCRIPT_DIR/sei-aneel.py" "$SCRIPT_DIR/sei-aneel.sh"
+  sudo cp "$TMP_DIR/sei-aneel.py" "$TMP_DIR/manage_processes.py" "$TMP_DIR/backup_manager.py" "$TMP_DIR/test_connectivity.py" "$TMP_DIR/sei-aneel.sh" "$TMP_DIR/requirements.txt" "$SCRIPT_DIR/"
+  sudo cp -r "$TMP_DIR/config" "$SCRIPT_DIR/"
+  sudo chown -R "$USER":"$USER" "$SCRIPT_DIR"
 
   rm -rf "$TMP_DIR"
   echo -e "${GREEN}Atualização concluída.${NC}"
@@ -106,11 +108,14 @@ install_pauta() {
   sudo cp requirements.txt "$PAUTA_DIR/"
   sudo chown -R "$USER":"$USER" "$PAUTA_DIR"
 
+  sudo mkdir -p "$SCRIPT_DIR"
+  sudo cp -r config "$SCRIPT_DIR/" 2>/dev/null
+
   sudo apt-get update
   sudo apt-get install -y python3 python3-pip
   sudo pip3 install --break-system-packages -r "$PAUTA_DIR/requirements.txt"
 
-  cat <<RUN > "$PAUTA_DIR/run.sh"
+cat <<RUN > "$PAUTA_DIR/run.sh"
 #!/bin/bash
 DIR="\$(dirname "$0")"
 cd "\$DIR"
@@ -118,7 +123,7 @@ export SEI_ANEEL_CONFIG="$CONFIG_FILE"
 PAUTA_DATA_DIR="\$DIR"
 PAUTA_LOG_FILE="\$DIR/logs/pauta_aneel.log"
 XDG_RUNTIME_DIR=\${XDG_RUNTIME_DIR:-/tmp}
-python3 "\$DIR/pauta_aneel.py" "\$@"
+PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/pauta_aneel.py" "\$@"
 RUN
   chmod +x "$PAUTA_DIR/run.sh"
 
@@ -204,11 +209,14 @@ install_sorteio() {
   sudo cp requirements.txt "$SORTEIO_DIR/"
   sudo chown -R "$USER":"$USER" "$SORTEIO_DIR"
 
+  sudo mkdir -p "$SCRIPT_DIR"
+  sudo cp -r config "$SCRIPT_DIR/" 2>/dev/null
+
   sudo apt-get update
   sudo apt-get install -y python3 python3-pip
   sudo pip3 install --break-system-packages -r "$SORTEIO_DIR/requirements.txt"
 
-  cat <<RUN > "$SORTEIO_DIR/run.sh"
+cat <<RUN > "$SORTEIO_DIR/run.sh"
 #!/bin/bash
 
 DIR="\$(dirname "$0")"
@@ -216,7 +224,7 @@ cd "\$DIR"
 export SEI_ANEEL_CONFIG="$CONFIG_FILE"
 SORTEIO_DATA_DIR="\$DIR"
 SORTEIO_LOG_FILE="\$DIR/logs/sorteio_aneel.log"
-python3 "\$DIR/sorteio_aneel.py" "\$@"
+PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/sorteio_aneel.py" "\$@"
 RUN
   chmod +x "$SORTEIO_DIR/run.sh"
 
