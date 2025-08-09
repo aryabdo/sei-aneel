@@ -797,37 +797,30 @@ class SEIAneel:
         return ""
 
     def _extrair_link_documento(self, elem) -> str:
-        """Obtém o link real do documento a partir do elemento de âncora."""
+        """Obtém o link real do documento a partir do elemento de âncora.
+
+        Tenta extrair o link diretamente do ``href`` do elemento. Caso seja uma
+        chamada JavaScript, procura URLs dentro do atributo ``onclick`` e retorna
+        o último link encontrado, que geralmente corresponde ao documento
+        desejado. O URL extraído é unido ao endereço atual da página para formar
+        um link absoluto quando necessário.
+        """
         try:
-            base_url = "https://sei.aneel.gov.br/sei/"
+            base_url = self.driver.current_url
             href = elem.get_attribute("href")
-            if href and href != "javascript:void(0);" and not href.startswith("javascript:"):
+            if href and not href.lower().startswith("javascript"):
                 return urljoin(base_url, href)
 
             onclick = elem.get_attribute("onclick") or ""
             if onclick:
-                # Procura por uma URL absoluta no onclick
-                match = re.search(r"['\"](https?://[^'\"]+)['\"]", onclick)
-                if match:
-                    return match.group(1)
-                # Procura por chamada ao controlador com path relativo
-                match = re.search(r"['\"](controlador\.php[^'\"]+)['\"]", onclick)
-                if match:
-                    return urljoin(base_url, match.group(1))
-                # Procura chamadas de funções JavaScript com URL como primeiro argumento
-                match = re.search(r"abrir\w*\(\s*['\"]([^'\"]+)['\"]", onclick)
-                if match:
-                    url = match.group(1)
-                    return url if url.startswith('http') else urljoin(base_url, url)
-                # Procura window.open ou location.href
-                match = re.search(r"window\.open\(\s*['\"]([^'\"]+)['\"]", onclick)
-                if match:
-                    url = match.group(1)
-                    return url if url.startswith('http') else urljoin(base_url, url)
-                match = re.search(r"location\.href\s*=\s*['\"]([^'\"]+)['\"]", onclick)
-                if match:
-                    url = match.group(1)
-                    return url if url.startswith('http') else urljoin(base_url, url)
+                candidatos = re.findall(
+                    r"['\"](https?://[^'\"]+|/[^'\"]+|\w+\.php[^'\"]*)['\"]",
+                    onclick,
+                )
+                for url in reversed(candidatos):
+                    if url.lower().startswith("javascript"):
+                        continue
+                    return urljoin(base_url, url)
         except Exception as e:
             self.logger.debug(f"Falha ao extrair link de documento: {e}")
         return ""
