@@ -7,12 +7,12 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
-# Assegura acesso ao módulo ``config_loader`` independentemente do diretório
-# de execução do script.
+# Assegura acesso ao módulo de configuração central independentemente do
+# diretório de execução do script.
 ROOT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT_DIR))
 
-from config_loader import DEFAULT_CONFIG_PATH, load_config
+from config import DEFAULT_CONFIG_PATH, load_config
 
 def _zip_dirs(base_dir: Path, target_dirs: list[Path]) -> Path:
     base_dir = base_dir.resolve()

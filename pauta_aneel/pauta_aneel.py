@@ -22,7 +22,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT_DIR))
 
-from config_loader import load_config
+from config import load_config
 
 # Diretório de dados e arquivos de log
 DATA_DIR = os.environ.get("PAUTA_DATA_DIR", os.path.join(os.path.expanduser("~"), ".pauta_aneel"))
