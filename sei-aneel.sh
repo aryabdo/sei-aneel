@@ -314,7 +314,6 @@ install_dependencies_only() {
 }
 
 update_global() {
-  install_dependencies_only
   update_sei
   update_pauta
   update_sorteio
