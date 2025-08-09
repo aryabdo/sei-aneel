@@ -251,10 +251,10 @@ def salvar_hash(arquivo, hash_str):
 def main():
     if len(sys.argv) > 1:
         data_pesquisa = sys.argv[1]
-        forcar_envio = True
+        execucao_manual = True
     else:
         data_pesquisa = None
-        forcar_envio = False
+        execucao_manual = False
     hoje = datetime.now()
     hoje_str = hoje.strftime("%d/%m/%Y")
     url, link_text, data_encontrada = find_nearest_date_link(data_pesquisa or hoje_str)
@@ -263,7 +263,7 @@ def main():
         print("Nenhum link associado à data encontrada.")
         subject = f"{hoje_str} Busca Pauta ANEEL - Nenhuma data encontrada"
         body = "Nao encontrada pauta para data indicada! Atenciosamente, Ary Abdo!"
-        if forcar_envio:
+        if execucao_manual:
             send_email(subject, body)
         registrar_log("Nenhum link associado à data encontrada. Nenhum e-mail enviado.")
         return
@@ -301,7 +301,7 @@ def main():
     hash_atual = hash_do_resultado(items)
     hash_antigo = ler_ultimo_hash(hash_arquivo)
 
-    if forcar_envio or (hash_atual != hash_antigo):
+    if execucao_manual or (hash_atual != hash_antigo):
         send_email(subject, body, pdf_path)
         salvar_hash(hash_arquivo, hash_atual)
         registrar_log("Conteúdo alterado/enviado. Hash atualizado.")

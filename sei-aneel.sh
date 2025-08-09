@@ -146,8 +146,11 @@ remove_pauta() {
 
 
 force_run_pauta() {
+  DEFAULT_DATE=$(date +%d/%m/%Y)
+  read -p $'\e[33mData da busca (dd/mm/aaaa) ['"$DEFAULT_DATE"$']: \e[0m' DATA
+  DATA=${DATA:-$DEFAULT_DATE}
   log_file="$PAUTA_LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
-  "$PAUTA_DIR/run.sh" | tee "$log_file"
+  "$PAUTA_DIR/run.sh" "$DATA" | tee "$log_file"
 }
 
 schedule_cron_pauta() {
@@ -315,8 +318,11 @@ installation_menu() {
 
 
 force_run_sorteio() {
+  DEFAULT_DATE=$(date +%d/%m/%Y)
+  read -p $'\e[33mData da busca (dd/mm/aaaa) ['"$DEFAULT_DATE"$']: \e[0m' DATA
+  DATA=${DATA:-$DEFAULT_DATE}
   log_file="$SORTEIO_LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
-  "$SORTEIO_DIR/run.sh" | tee "$log_file"
+  "$SORTEIO_DIR/run.sh" "$DATA" | tee "$log_file"
 }
 
 schedule_cron_sorteio() {
@@ -642,7 +648,7 @@ sei_menu() {
     echo -e "${CYAN}3) Remover${NC}"
     echo -e "${CYAN}4) Gerenciar processos${NC}"
     echo -e "${CYAN}5) Testar conectividade${NC}"
-    echo -e "${CYAN}6) Executar forçado${NC}"
+    echo -e "${CYAN}6) Execução Manual${NC}"
     echo -e "${CYAN}7) Gerenciar cron${NC}"
     echo -e "${CYAN}8) Ver logs${NC}"
     echo -e "${CYAN}9) Voltar${NC}"
@@ -669,7 +675,7 @@ pauta_menu() {
     echo -e "${CYAN}1) Instalar${NC}"
     echo -e "${CYAN}2) Atualizar${NC}"
     echo -e "${CYAN}3) Remover${NC}"
-    echo -e "${CYAN}4) Executar forçado${NC}"
+    echo -e "${CYAN}4) Execução Manual${NC}"
     echo -e "${CYAN}5) Gerenciar cron${NC}"
     echo -e "${CYAN}6) Ver logs${NC}"
     echo -e "${CYAN}7) Voltar${NC}"
@@ -694,7 +700,7 @@ sorteio_menu() {
     echo -e "${CYAN}1) Instalar${NC}"
     echo -e "${CYAN}2) Atualizar${NC}"
     echo -e "${CYAN}3) Remover${NC}"
-    echo -e "${CYAN}4) Executar forçado${NC}"
+    echo -e "${CYAN}4) Execução Manual${NC}"
     echo -e "${CYAN}5) Gerenciar cron${NC}"
     echo -e "${CYAN}6) Ver logs${NC}"
     echo -e "${CYAN}7) Voltar${NC}"
