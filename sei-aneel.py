@@ -21,11 +21,11 @@ import threading
 import signal
 
 # Garante que o diretório raiz esteja no ``PYTHONPATH`` para importar
-# ``config_loader``.
+# o módulo de configuração central.
 ROOT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT_DIR))
 
-from config_loader import DEFAULT_CONFIG_PATH
+from config import DEFAULT_CONFIG_PATH, load_config
 
 # Inicializa colorama para Windows
 colorama.init(autoreset=True)
@@ -205,25 +205,22 @@ class KeyboardHandler:
 
 class ConfigManager:
     """Gerenciador de configurações do sistema"""
-    
+
     def __init__(self, config_path: str = None):
         if config_path is None:
             config_path = DEFAULT_CONFIG_PATH
-        
+
         self.config_path = config_path
-        self.config = self.load_config()
-    
+        self.config = load_config(self.config_path)
+
     def load_config(self) -> Dict[str, Any]:
         """Carrega configurações do arquivo JSON"""
         try:
-            with open(self.config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-            smtp = config.setdefault('smtp', {})
-            smtp.setdefault('port', 587)
-            smtp.setdefault('starttls', False)
-            return config
+            return load_config(self.config_path)
         except FileNotFoundError:
-            raise FileNotFoundError(f"Arquivo de configuração não encontrado: {self.config_path}")
+            raise FileNotFoundError(
+                f"Arquivo de configuração não encontrado: {self.config_path}"
+            )
         except json.JSONDecodeError as e:
             raise ValueError(f"Erro ao decodificar JSON: {e}")
     

@@ -8,15 +8,15 @@ import urllib.request
 from pathlib import Path
 
 # Garante que o diretório raiz do projeto esteja no ``PYTHONPATH``
-# para permitir a importação de ``config_loader`` quando o script
-# for executado a partir de locais diferentes.
+# para permitir a importação do módulo de configuração central
+# quando o script for executado a partir de locais diferentes.
 ROOT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT_DIR))
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-from config_loader import load_config
+from config import load_config
 
 
 def test_twocaptcha(api_key):
