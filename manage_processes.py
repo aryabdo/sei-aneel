@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT_DIR))
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-from config_loader import load_config
+from config import load_config
 
 
 def connect_sheet(conf):
