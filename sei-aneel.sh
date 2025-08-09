@@ -132,8 +132,23 @@ RUN
 update_pauta() {
   TMP_DIR=$(mktemp -d)
   git clone "$REPO_URL" "$TMP_DIR" >/dev/null 2>&1
+  sudo rm -rf "$PAUTA_DIR"
+  sudo mkdir -p "$PAUTA_DIR" "$PAUTA_LOG_DIR"
   sudo cp "$TMP_DIR/pauta_aneel/pauta_aneel.py" "$PAUTA_DIR/"
-  sudo chown "$USER":"$USER" "$PAUTA_DIR/pauta_aneel.py"
+  sudo cp "$TMP_DIR/requirements.txt" "$PAUTA_DIR/"
+  sudo chown -R "$USER":"$USER" "$PAUTA_DIR"
+  sudo pip3 install --break-system-packages -r "$PAUTA_DIR/requirements.txt"
+cat <<RUN > "$PAUTA_DIR/run.sh"
+#!/bin/bash
+DIR="\$(dirname "\$0")"
+cd "\$DIR"
+export SEI_ANEEL_CONFIG="$CONFIG_FILE"
+PAUTA_DATA_DIR="\$DIR"
+PAUTA_LOG_FILE="\$DIR/logs/pauta_aneel.log"
+XDG_RUNTIME_DIR=\${XDG_RUNTIME_DIR:-/tmp}
+PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/pauta_aneel.py" "\$@"
+RUN
+  chmod +x "$PAUTA_DIR/run.sh"
   rm -rf "$TMP_DIR"
   echo -e "${GREEN}Atualização concluída.${NC}"
 }
@@ -236,8 +251,23 @@ RUN
 update_sorteio() {
   TMP_DIR=$(mktemp -d)
   git clone "$REPO_URL" "$TMP_DIR" >/dev/null 2>&1
+  sudo rm -rf "$SORTEIO_DIR"
+  sudo mkdir -p "$SORTEIO_DIR" "$SORTEIO_LOG_DIR"
   sudo cp "$TMP_DIR/sorteio_aneel/sorteio_aneel.py" "$SORTEIO_DIR/"
-  sudo chown "$USER":"$USER" "$SORTEIO_DIR/sorteio_aneel.py"
+  sudo cp "$TMP_DIR/requirements.txt" "$SORTEIO_DIR/"
+  sudo chown -R "$USER":"$USER" "$SORTEIO_DIR"
+  sudo pip3 install --break-system-packages -r "$SORTEIO_DIR/requirements.txt"
+cat <<RUN > "$SORTEIO_DIR/run.sh"
+#!/bin/bash
+
+DIR="\$(dirname "\$0")"
+cd "\$DIR"
+export SEI_ANEEL_CONFIG="$CONFIG_FILE"
+SORTEIO_DATA_DIR="\$DIR"
+SORTEIO_LOG_FILE="\$DIR/logs/sorteio_aneel.log"
+PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/sorteio_aneel.py" "\$@"
+RUN
+  chmod +x "$SORTEIO_DIR/run.sh"
   rm -rf "$TMP_DIR"
   echo -e "${GREEN}Atualização concluída.${NC}"
 }
