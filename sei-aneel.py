@@ -1288,15 +1288,19 @@ def processar_processo(proc: str, driver, planilha_handler: Optional[PlanilhaHan
         doc_nr, doc_tipo, doc_data, doc_incl, doc_uni, doc_links = sei.extrair_lista_protocolos_concatenado()
         doc_nr_list = doc_nr.split("\n") if doc_nr else []
         doc_link_list = doc_links.split("\n") if doc_links else []
-        doc_formula_parts = []
-        for texto, link in zip_longest(doc_nr_list, doc_link_list, fillvalue=""):
-            texto_safe = texto.replace('"', '\\"')
-            if link:
-                link_safe = link.replace('"', '\\"')
-                doc_formula_parts.append(f'HYPERLINK("{link_safe}"; "{texto_safe}")')
-            else:
-                doc_formula_parts.append(f'"{texto_safe}"')
-        doc_nr = "=" + "&CHAR(10)&".join(doc_formula_parts) if doc_formula_parts else ""
+
+        if planilha_handler:
+            doc_formula_parts = []
+            for texto, link in zip_longest(doc_nr_list, doc_link_list, fillvalue=""):
+                texto_safe = texto.replace('"', '\\"')
+                if link:
+                    link_safe = link.replace('"', '\\"')
+                    doc_formula_parts.append(f'HYPERLINK("{link_safe}"; "{texto_safe}")')
+                else:
+                    doc_formula_parts.append(f'"{texto_safe}"')
+            doc_nr = "=" + "&CHAR(10)&".join(doc_formula_parts) if doc_formula_parts else ""
+        else:
+            doc_nr = "\n".join(doc_nr_list)
         and_datas, and_unids, and_descrs = sei.extrair_andamentos_concatenado()
 
         interessados = detalhes.get("Interessados", "")
@@ -1675,18 +1679,17 @@ def enviar_resultados_email(resultados: List[Dict[str, Any]],
         <html>
         <head>
             <style>
-                body {{ font-family: Arial, sans-serif; }}
-                .header {{ text-align: center; margin-bottom: 20px; }}
-                .timestamp {{ font-size: 0.9em; color: #666; }}
-                .section {{ margin-bottom: 20px; }}
-                .mudanca {{ margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }}
-                .mudanca .processo {{ font-weight: bold; }}
-                .mudanca .tipo {{ color: #555; font-size: 0.9em; }}
-                .falha {{ margin-bottom: 10px; padding: 10px; border: 1px solid #f5c6cb; background: #f8d7da; border-radius: 5px; }}
-                .falha .processo {{ font-weight: bold; }}
-                table.detalhes {{ border-collapse: collapse; width: 100%; margin-top: 10px; }}
-                table.detalhes th, table.detalhes td {{ border: 1px solid #ddd; padding: 8px; }}
-                table.detalhes th {{ background-color: #f2f2f2; }}
+                body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                .header {{ color: #2c5aa0; border-bottom: 2px solid #2c5aa0; padding-bottom: 10px; }}
+                .section {{ margin: 20px 0; }}
+                .mudanca {{ background-color: #e8f4f8; border-left: 4px solid #2c5aa0; padding: 10px; margin: 5px 0; }}
+                .falha {{ background-color: #f8e8e8; border-left: 4px solid #d32f2f; padding: 10px; margin: 5px 0; }}
+                .processo {{ font-weight: bold; color: #1976d2; }}
+                .tipo {{ color: #666; font-style: italic; }}
+                .timestamp {{ color: #888; font-size: 0.9em; }}
+                table.detalhes {{ border-collapse: collapse; margin-top: 5px; }}
+                table.detalhes th, table.detalhes td {{ border: 1px solid #ddd; padding: 4px 8px; text-align: left; vertical-align: top; font-size: 0.9em; }}
+                table.detalhes th {{ background-color: #f0f0f0; }}
             </style>
         </head>
         <body>
