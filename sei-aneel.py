@@ -1667,37 +1667,151 @@ def enviar_resultados_email(resultados: List[Dict[str, Any]],
 
         assunto = f"SEI ANEEL - Resultado da Consulta ({datetime.now().strftime('%d/%m/%Y %H:%M')})"
         timestamp_str = datetime.now().strftime('%d/%m/%Y às %H:%M:%S')
-        corpo_html = ["<html><body>",
-                      f"<h2>Resultados da Consulta SEI ANEEL</h2>",
-                      f"<div class='timestamp'>Gerado em: {timestamp_str}</div>"]
 
-        headers = [
-            "Tipo do processo", "Interessados", "Documento", "Tipo do documento",
-            "Data do documento", "Data de Inclusão", "Unidade",
-            "Data/Hora do Andamento", "Unidade do Andamento",
-            "Descrição do Andamento", "Link"
-        ]
+        sucessos = [r for r in resultados if r.get('status') not in ('falha', 'invalido')]
+        falhas = [r.get('processo', '') for r in resultados if r.get('status') == 'falha']
 
-        for res in resultados:
-            dados = res.get('dados')
-            proc = html.escape(res.get('processo', ''))
-            if res.get('status') != 'processado' or not dados:
-                corpo_html.append(f"<p>❌ Processo {proc}: não foi possível obter dados.</p>")
-                continue
+        corpo_html = f"""
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; }}
+                .header {{ text-align: center; margin-bottom: 20px; }}
+                .timestamp {{ font-size: 0.9em; color: #666; }}
+                .section {{ margin-bottom: 20px; }}
+                .mudanca {{ margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }}
+                .mudanca .processo {{ font-weight: bold; }}
+                .mudanca .tipo {{ color: #555; font-size: 0.9em; }}
+                .falha {{ margin-bottom: 10px; padding: 10px; border: 1px solid #f5c6cb; background: #f8d7da; border-radius: 5px; }}
+                .falha .processo {{ font-weight: bold; }}
+                table.detalhes {{ border-collapse: collapse; width: 100%; margin-top: 10px; }}
+                table.detalhes th, table.detalhes td {{ border: 1px solid #ddd; padding: 8px; }}
+                table.detalhes th {{ background-color: #f2f2f2; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>Relatório de Monitoramento SEI ANEEL</h2>
+                <div class="timestamp">Gerado em: {timestamp_str}</div>
+            </div>
+        """
 
-            corpo_html.append(f"<h3>Processo {html.escape(dados[0])}</h3>")
-            corpo_html.append("<table class='detalhes' border='1' style='border-collapse: collapse;'>")
-            for titulo, valor in zip(headers, dados[1:]):
-                if titulo == 'Link' and valor:
-                    val_html = f"<a href='{html.escape(valor, quote=True)}'>{html.escape(valor)}</a>"
-                else:
-                    val_html = html.escape(valor)
-                corpo_html.append(f"<tr><th>{titulo}</th><td>{val_html}</td></tr>")
-            corpo_html.append("</table>")
+        if sucessos:
+            corpo_html += f"""
+            <div class="section">
+                <h3>📋 Resultados da Consulta ({len(sucessos)})</h3>
+            """
+            for res in sucessos:
+                dados = res.get('dados')
+                if not dados:
+                    continue
 
-        corpo_html.append("<p><small>Este é um email automático do sistema de monitoramento SEI ANEEL.</small></p>")
-        corpo_html.append("</body></html>")
-        corpo_html = ''.join(corpo_html)
+                dados_dict = {
+                    "Processo": dados[0],
+                    "Tipo do processo": dados[1],
+                    "Interessados": dados[2],
+                    "Documento": dados[3],
+                    "Tipo do documento": dados[4],
+                    "Data do documento": dados[5],
+                    "Data de Inclusão": dados[6],
+                    "Unidade": dados[7],
+                    "Data/Hora do Andamento": dados[8],
+                    "Unidade do Andamento": dados[9],
+                    "Descrição do Andamento": dados[10],
+                    "Link": dados[11],
+                }
+
+                def organizar_colunas(dados: Dict[str, str], campos: List[str], chave_ord: str) -> Dict[str, str]:
+                    listas = {c: [s.strip() for s in dados.get(c, '').splitlines() if s.strip()] for c in campos}
+                    total = max((len(v) for v in listas.values()), default=0)
+                    registros = []
+                    for i in range(total):
+                        registros.append({c: listas[c][i] if i < len(listas[c]) else '' for c in campos})
+
+                    def parse_data(valor: str):
+                        for fmt in ('%d/%m/%Y %H:%M:%S', '%d/%m/%Y %H:%M', '%d/%m/%Y'):
+                            try:
+                                return datetime.strptime(valor, fmt)
+                            except ValueError:
+                                continue
+                        return datetime.min
+
+                    registros.sort(key=lambda r: parse_data(r.get(chave_ord, '')), reverse=True)
+                    return {c: '<br>'.join(r[c] for r in registros if r[c]) for c in campos}
+
+                doc_campos = ['Documento', 'Tipo do documento', 'Data do documento', 'Data de Inclusão', 'Unidade', 'Link']
+                and_campos = ['Data/Hora do Andamento', 'Unidade do Andamento', 'Descrição do Andamento']
+                docs = organizar_colunas(dados_dict, doc_campos, 'Data de Inclusão')
+                andamentos = organizar_colunas(dados_dict, and_campos, 'Data/Hora do Andamento')
+
+                doc_textos = docs.get('Documento', '').split('<br>') if docs.get('Documento') else []
+                doc_links = docs.get('Link', '').split('<br>') if docs.get('Link') else []
+                doc_anchors = []
+                for texto, link in zip_longest(doc_textos, doc_links, fillvalue=''):
+                    texto_esc = html.escape(texto)
+                    link_esc = html.escape(link, quote=True)
+                    doc_anchors.append(f'<a href="{link_esc}">{texto_esc}</a>' if link else texto_esc)
+                docs_html = '<br>'.join(doc_anchors)
+
+                tabela_basica = f"""
+                <table class="detalhes">
+                    <tr><th>PROCESSOS</th><td>{html.escape(dados_dict.get('Processo', ''))}</td></tr>
+                    <tr><th>Tipo do processo</th><td>{html.escape(dados_dict.get('Tipo do processo', ''))}</td></tr>
+                    <tr><th>Interessados</th><td>{html.escape(dados_dict.get('Interessados', ''))}</td></tr>
+                </table>
+                """
+
+                tabela_colunas = f"""
+                <table class="detalhes">
+                    <tr>
+                        <th>Documento</th><th>Tipo do documento</th><th>Data do documento</th>
+                        <th>Data de Inclusão</th><th>Unidade</th>
+                        <th>Data/Hora do Andamento</th><th>Unidade do Andamento</th><th>Descrição do Andamento</th>
+                    </tr>
+                    <tr>
+                        <td>{docs_html}</td>
+                        <td>{docs.get('Tipo do documento', '')}</td>
+                        <td>{docs.get('Data do documento', '')}</td>
+                        <td>{docs.get('Data de Inclusão', '')}</td>
+                        <td>{docs.get('Unidade', '')}</td>
+                        <td>{andamentos.get('Data/Hora do Andamento', '')}</td>
+                        <td>{andamentos.get('Unidade do Andamento', '')}</td>
+                        <td>{andamentos.get('Descrição do Andamento', '')}</td>
+                    </tr>
+                </table>
+                """
+
+                corpo_html += f"""
+                <div class="mudanca">
+                    📄 <span class="processo">{html.escape(dados_dict.get('Processo', ''))}</span><br>
+                    <span class="tipo">Resultado da consulta</span>
+                    {tabela_basica + tabela_colunas}
+                </div>
+                """
+
+            corpo_html += "</div>"
+
+        if falhas:
+            corpo_html += f"""
+            <div class="section">
+                <h3>⚠️ Processos com erro ou não localizados ({len(falhas)})</h3>
+            """
+            for processo in falhas:
+                corpo_html += f"""
+                <div class="falha">
+                    ❌ <span class="processo">{processo}</span><br>
+                    <span class="tipo">Erro no processamento ou processo não localizado - requer atenção manual</span>
+                </div>
+                """
+            corpo_html += "</div>"
+
+        corpo_html += """
+            <div class="section">
+                <p><small>Este é um email automático do sistema de monitoramento SEI ANEEL.</small></p>
+            </div>
+        </body>
+        </html>
+        """
 
         recipients = [r.strip() for r in email_config.get('recipients', []) if r.strip()]
         if not recipients:
