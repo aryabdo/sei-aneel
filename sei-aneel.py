@@ -141,6 +141,8 @@ class ProgressTracker:
         elif status == "inserido":
             self.successes += 1
             self.inserts += 1
+        elif status == "processado":
+            self.successes += 1
         else:
             self.failures += 1
             
@@ -1076,18 +1078,22 @@ def main() -> List[Dict[str, str]]:
         service = Service(executable_path=paths["chromedriver"])
         driver = webdriver.Chrome(service=service, options=chrome_options)
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        
+
         if ui:
             print(f"{Fore.GREEN}✅ Navegador inicializado")
-            print(f"{Fore.CYAN}📊 Conectando à planilha Google...")
-        
-        planilha_handler = PlanilhaHandler(config, logger)
-        
+
+        planilha_handler = None
+        if not args.processo:
+            if ui:
+                print(f"{Fore.CYAN}📊 Conectando à planilha Google...")
+            planilha_handler = PlanilhaHandler(config, logger)
+            if ui:
+                print(f"{Fore.GREEN}✅ Planilha conectada")
+
         if ui:
-            print(f"{Fore.GREEN}✅ Planilha conectada")
             keyboard_handler = KeyboardHandler(ui, tracker)
             keyboard_handler.setup_signal_handler()
-        
+
     except Exception as e:
         error_msg = f"Erro na inicialização: {e}"
         if ui:
@@ -1119,7 +1125,11 @@ def main() -> List[Dict[str, str]]:
                 print(f"{Fore.YELLOW}⚠️  Limitado a {args.max_processes} processos")
         
         if not processos_unicos:
-            error_msg = "Nenhum número de processo válido encontrado na planilha!"
+            error_msg = (
+                "Nenhum número de processo válido fornecido!"
+                if args.processo
+                else "Nenhum número de processo válido encontrado na planilha!"
+            )
             if ui:
                 print(f"\n{Fore.RED}❌ {error_msg}")
             logger.error(f"ERRO: {error_msg}")
@@ -1172,7 +1182,7 @@ def main() -> List[Dict[str, str]]:
             tracker.update_stats(resultado["status"])
             
             if ui:
-                status_color = "sucesso" if resultado["status"] in ["atualizado", "inserido"] else "falha"
+                status_color = "sucesso" if resultado["status"] in ["atualizado", "inserido", "processado"] else "falha"
                 ui.print_status(i+1, len(processos_unicos), proc, status_color)
                 print(f"\n{Fore.WHITE}ETA: {tracker.get_eta()}")
             
@@ -1215,11 +1225,18 @@ def main() -> List[Dict[str, str]]:
         
         # Verifica mudanças e envia email se configurado
         if config.get('email.recipients'):
-            if ui:
-                print(f"\n\n{Fore.CYAN}📧 Verificando mudanças e enviando notificações...")
-            verificar_e_enviar_notificacoes(planilha_handler, list(processos_falha), config, logger)
-            if ui:
-                print(f"{Fore.GREEN}✅ Notificações processadas")
+            if args.processo:
+                if ui:
+                    print(f"\n\n{Fore.CYAN}📧 Enviando resultados por email...")
+                enviar_resultados_email(resultados, config, logger)
+                if ui:
+                    print(f"{Fore.GREEN}✅ Email enviado")
+            else:
+                if ui:
+                    print(f"\n\n{Fore.CYAN}📧 Verificando mudanças e enviando notificações...")
+                verificar_e_enviar_notificacoes(planilha_handler, list(processos_falha), config, logger)
+                if ui:
+                    print(f"{Fore.GREEN}✅ Notificações processadas")
         
         if ui:
             print(f"\n\n{Fore.GREEN}🎉 Processamento finalizado com sucesso!")
@@ -1243,8 +1260,8 @@ def main() -> List[Dict[str, str]]:
     
     return resultados
 
-def processar_processo(proc: str, driver, planilha_handler: PlanilhaHandler, 
-                      config: ConfigManager, logger, ui: InteractiveUI = None) -> Dict[str, str]:
+def processar_processo(proc: str, driver, planilha_handler: Optional[PlanilhaHandler],
+                      config: ConfigManager, logger, ui: InteractiveUI = None) -> Dict[str, Any]:
     """Processa um processo individual"""
     if not validar_numero_processo(proc):
         if ui:
@@ -1301,34 +1318,42 @@ def processar_processo(proc: str, driver, planilha_handler: PlanilhaHandler,
             doc_links,
         ]
 
-        if ui:
-            print(f"{Fore.CYAN}  💾 Salvando na planilha...")
-        status_inicial = None
-        col_c_val = ""
-        for tentativa in range(2):
-            status_atual = planilha_handler.atualizar_ou_inserir_processo(linha, detalhes.get("Processo", ""))
-            if status_inicial is None:
-                status_inicial = status_atual
-            row_idx = planilha_handler.find_row_by_proc_number(detalhes.get("Processo", ""))
-            if row_idx:
-                valor = planilha_handler.get_cell_value(row_idx, 3)
-                if valor and valor.strip():
-                    col_c_val = valor
-                    break
-            if tentativa == 0:
-                logger.warning(f"Coluna C vazia para {detalhes.get('Processo','')}, tentando novamente...")
-        if not col_c_val:
-            logger.warning(f"Coluna C permaneceu vazia para {detalhes.get('Processo','')} após 2 tentativas.")
-        status = status_inicial if status_inicial else status_atual
+        status = "processado"
+        if planilha_handler:
+            if ui:
+                print(f"{Fore.CYAN}  💾 Salvando na planilha...")
+            status_inicial = None
+            col_c_val = ""
+            for tentativa in range(2):
+                status_atual = planilha_handler.atualizar_ou_inserir_processo(linha, detalhes.get("Processo", ""))
+                if status_inicial is None:
+                    status_inicial = status_atual
+                row_idx = planilha_handler.find_row_by_proc_number(detalhes.get("Processo", ""))
+                if row_idx:
+                    valor = planilha_handler.get_cell_value(row_idx, 3)
+                    if valor and valor.strip():
+                        col_c_val = valor
+                        break
+                if tentativa == 0:
+                    logger.warning(f"Coluna C vazia para {detalhes.get('Processo','')}, tentando novamente...")
+            if not col_c_val:
+                logger.warning(f"Coluna C permaneceu vazia para {detalhes.get('Processo','')} após 2 tentativas.")
+            status = status_inicial if status_inicial else status_atual
+
         sei.captcha_handler.limpar_captchas()
-        
-        status_msg = "✅ Atualizado" if status == "atualizado" else "📝 Inserido" if status == "inserido" else "❌ Falha"
-        status_color = Fore.GREEN if status in ["atualizado", "inserido"] else Fore.RED
-        
+
+        status_msg = (
+            "✅ Atualizado" if status == "atualizado" else
+            "📝 Inserido" if status == "inserido" else
+            "✅ Processado" if status == "processado" else
+            "❌ Falha"
+        )
+        status_color = Fore.GREEN if status in ["atualizado", "inserido", "processado"] else Fore.RED
+
         if ui:
             print(f"{status_color}  {status_msg}")
-        
-        return {"processo": detalhes.get("Processo", ""), "status": status}
+
+        return {"processo": detalhes.get("Processo", ""), "status": status, "dados": linha}
     except Exception as e:
         if ui:
             print(f"{Fore.RED}  ❌ Erro: {str(e)[:50]}...")
@@ -1624,6 +1649,89 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
         logger.error(f"Erro ao enviar email de notificação: {e}")
 
 
+def enviar_resultados_email(resultados: List[Dict[str, Any]],
+                            config: ConfigManager, logger) -> None:
+    """Envia por email os dados dos processos informados"""
+    try:
+        smtp_config = config.get('smtp', {})
+        email_config = config.get('email', {})
+
+        if not all([
+            smtp_config.get('server'),
+            smtp_config.get('user'),
+            smtp_config.get('password'),
+            email_config.get('recipients')
+        ]):
+            logger.warning("Configurações de email incompletas, pulando envio")
+            return
+
+        assunto = f"SEI ANEEL - Resultado da Consulta ({datetime.now().strftime('%d/%m/%Y %H:%M')})"
+        timestamp_str = datetime.now().strftime('%d/%m/%Y às %H:%M:%S')
+        corpo_html = ["<html><body>",
+                      f"<h2>Resultados da Consulta SEI ANEEL</h2>",
+                      f"<div class='timestamp'>Gerado em: {timestamp_str}</div>"]
+
+        headers = [
+            "Tipo do processo", "Interessados", "Documento", "Tipo do documento",
+            "Data do documento", "Data de Inclusão", "Unidade",
+            "Data/Hora do Andamento", "Unidade do Andamento",
+            "Descrição do Andamento", "Link"
+        ]
+
+        for res in resultados:
+            dados = res.get('dados')
+            proc = html.escape(res.get('processo', ''))
+            if res.get('status') != 'processado' or not dados:
+                corpo_html.append(f"<p>❌ Processo {proc}: não foi possível obter dados.</p>")
+                continue
+
+            corpo_html.append(f"<h3>Processo {html.escape(dados[0])}</h3>")
+            corpo_html.append("<table class='detalhes' border='1' style='border-collapse: collapse;'>")
+            for titulo, valor in zip(headers, dados[1:]):
+                if titulo == 'Link' and valor:
+                    val_html = f"<a href='{html.escape(valor, quote=True)}'>{html.escape(valor)}</a>"
+                else:
+                    val_html = html.escape(valor)
+                corpo_html.append(f"<tr><th>{titulo}</th><td>{val_html}</td></tr>")
+            corpo_html.append("</table>")
+
+        corpo_html.append("<p><small>Este é um email automático do sistema de monitoramento SEI ANEEL.</small></p>")
+        corpo_html.append("</body></html>")
+        corpo_html = ''.join(corpo_html)
+
+        recipients = [r.strip() for r in email_config.get('recipients', []) if r.strip()]
+        if not recipients:
+            logger.warning("Nenhum destinatário de email configurado, pulando envio")
+            return
+
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = assunto
+        msg['From'] = smtp_config['user']
+        msg['To'] = ', '.join(recipients)
+        msg['Date'] = formatdate(localtime=True)
+
+        parte_texto = MIMEText(
+            'Resultados da consulta SEI ANEEL. Utilize um cliente compatível com HTML para melhor visualização.',
+            'plain', 'utf-8')
+        msg.attach(parte_texto)
+        parte_html = MIMEText(corpo_html, 'html', 'utf-8')
+        msg.attach(parte_html)
+
+        server = smtplib.SMTP(smtp_config['server'], smtp_config.get('port', 587))
+        server.ehlo()
+        if smtp_config.get('starttls', False):
+            server.starttls()
+            server.ehlo()
+        server.login(smtp_config['user'], smtp_config['password'])
+        server.send_message(msg)
+        server.quit()
+
+        logger.info(f"Email de resultados enviado para {len(recipients)} destinatário(s)")
+
+    except Exception as e:
+        logger.error(f"Erro ao enviar email de resultados: {e}")
+
+
 def enviar_tabela_completa_email(planilha_handler: PlanilhaHandler,
                                  config: ConfigManager, logger) -> None:
     """Envia por email a tabela completa sem realizar atualização"""
@@ -1737,7 +1845,7 @@ def enviar_tabela_completa_email(planilha_handler: PlanilhaHandler,
 if __name__ == "__main__":
     try:
         resultados = main()
-        sucesso = len([r for r in resultados if r["status"] in ["atualizado", "inserido"]])
+        sucesso = len([r for r in resultados if r["status"] in ["atualizado", "inserido", "processado"]])
         total = len(resultados)
         
         print(f"\n{Fore.CYAN}{'='*50}")
