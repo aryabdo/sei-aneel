@@ -17,32 +17,6 @@
   "email": {
     "recipients": ["destinatario@exemplo.com"]
   },
-  "keywords": {
-    "pauta": [
-      "consulta publica",
-      "tomada de subsidio",
-      "consulta externa",
-      "audiencia publica",
-      "leilao",
-      "isa energia",
-      "cteep",
-      "companhia de transmissao de energia eletrica paulista",
-      "interligacao eletrica"
-    ],
-    "sorteio": [
-      "consulta publica",
-      "reajuste tarifario",
-      "rbse",
-      "tomada de subsidio",
-      "consulta externa",
-      "audiencia publica",
-      "leilao",
-      "isa energia",
-      "cteep",
-      "companhia de transmissao de energia eletrica paulista",
-      "interligacao eletrica"
-    ]
-  },
   "paths": {
     "tesseract": "/usr/bin/tesseract",
     "chromedriver": "/usr/bin/chromedriver",

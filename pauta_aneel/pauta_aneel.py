@@ -22,7 +22,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT_DIR))
 
-from config import load_config
+from config import load_config, load_search_terms
 
 # Diretório de dados e arquivos de log
 DATA_DIR = os.environ.get("PAUTA_DATA_DIR", os.path.join(os.path.expanduser("~"), ".pauta_aneel"))
@@ -54,8 +54,8 @@ EMAIL_TO = ",".join(CONFIG.get("email", {}).get("recipients", []))
 BASE_URL = "https://www2.aneel.gov.br/aplicacoes_liferay/noticias_area/?idAreaNoticia=425"
 SITE_PREFIX = "https://www2.aneel.gov.br"
 
-# Termos de pesquisa obtidos do arquivo de configuração global
-KEYWORDS = CONFIG.get("keywords", {}).get("pauta", [])
+# Termos de pesquisa centralizados em ``search_terms.txt``
+KEYWORDS = load_search_terms()
 
 def normalize(s):
     if not isinstance(s, str):
