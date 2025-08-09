@@ -794,6 +794,26 @@ class SEIAneel:
             self.logger.error(f"Erro na busca redundante de interessados: {e}")
         return ""
 
+    def _extrair_link_documento(self, elem) -> str:
+        """Obtém o link real do documento a partir do elemento de âncora."""
+        try:
+            href = elem.get_attribute("href")
+            if href and href != "javascript:void(0);" and not href.startswith("javascript:"):
+                return href
+
+            onclick = elem.get_attribute("onclick") or ""
+            if onclick:
+                # Procura por uma URL absoluta no onclick
+                match = re.search(r"https?://[^'\"]+", onclick)
+                if match:
+                    return match.group(0)
+                # Procura por chamada ao controlador com path relativo
+                match = re.search(r"['\"](controlador\.php[^'\"]+)['\"]", onclick)
+                if match:
+                    return f"https://sei.aneel.gov.br/sei/{match.group(1)}"
+        except Exception as e:
+            self.logger.debug(f"Falha ao extrair link de documento: {e}")
+        return ""
     def extrair_lista_protocolos_concatenado(self) -> Tuple[str, str, str, str, str, str]:
         """Extrai lista de protocolos/documentos"""
         try:
@@ -813,7 +833,9 @@ class SEIAneel:
                     doc_unidades.append(tds[5].text.strip())
                     try:
                         link_elem = tds[1].find_element(By.TAG_NAME, "a")
-                        doc_links.append(link_elem.get_attribute("href"))
+
+                        doc_links.append(self._extrair_link_documento(link_elem))
+
                     except Exception:
                         doc_links.append("")
 
