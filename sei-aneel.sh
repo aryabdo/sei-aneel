@@ -590,7 +590,7 @@ list_cron() {
   crontab -l 2>/dev/null | grep 'sei-aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
 }
 
-cron_menu() {
+cron_menu_sei() {
   while true; do
     echo -e "${CYAN}1) Incluir/Editar agendamento${NC}"
     echo -e "${CYAN}2) Apagar registro${NC}"
@@ -604,6 +604,23 @@ cron_menu() {
       3) list_cron ;;
       4) clear_all_cron ;;
       5) break ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
+    esac
+  done
+}
+
+cron_menu() {
+  while true; do
+    echo -e "${CYAN}1) SEI ANEEL${NC}"
+    echo -e "${CYAN}2) Pauta ANEEL${NC}"
+    echo -e "${CYAN}3) Sorteio ANEEL${NC}"
+    echo -e "${CYAN}4) Voltar${NC}"
+    read -p $'\e[33mOpção: \e[0m' op
+    case $op in
+      1) cron_menu_sei ;;
+      2) cron_menu_pauta ;;
+      3) cron_menu_sorteio ;;
+      4) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
@@ -741,17 +758,15 @@ config_menu() {
 sei_menu() {
   while true; do
     echo -e "${CYAN}1) Gerenciar processos${NC}"
-    echo -e "${CYAN}2) Testar conectividade${NC}"
-    echo -e "${CYAN}3) Execução Manual${NC}"
-    echo -e "${CYAN}4) Ver logs${NC}"
-    echo -e "${CYAN}5) Voltar${NC}"
+    echo -e "${CYAN}2) Execução Manual${NC}"
+    echo -e "${CYAN}3) Ver logs${NC}"
+    echo -e "${CYAN}4) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
       1) manage_processes_menu ;;
-      2) test_connectivity ;;
-      3) force_run ;;
-      4) view_logs ;;
-      5) break ;;
+      2) force_run ;;
+      3) view_logs ;;
+      4) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
