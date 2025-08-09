@@ -7,10 +7,14 @@ CONFIG_DIR="$TARGET_DIR/config"
 
 # cria diretório temporário para backup
 TEMP_DIR=$(mktemp -d)
+CRON_BACKUP="$TEMP_DIR/cron.bak"
 
 if [ -d "$CONFIG_DIR" ]; then
   cp -r "$CONFIG_DIR" "$TEMP_DIR/" 2>/dev/null
 fi
+
+# salva crontab existente, se houver
+crontab -l 2>/dev/null > "$CRON_BACKUP"
 
 # garante que não estamos dentro do diretório a ser removido
 cd /
@@ -27,9 +31,17 @@ if [ -d "$TEMP_DIR/config" ]; then
   sudo mv "$TEMP_DIR/config" "$CONFIG_DIR"
 fi
 
-rm -rf "$TEMP_DIR"
+# instala dependências
+sudo pip3 install --break-system-packages -r "$TARGET_DIR/requirements.txt"
+
+# restaura crontab se existir
+if [ -s "$CRON_BACKUP" ]; then
+  crontab "$CRON_BACKUP"
+fi
 
 # ajusta permissões
 sudo chown -R "$USER":"$USER" "$TARGET_DIR"
+
+rm -rf "$TEMP_DIR"
 
 echo "Atualização concluída."
