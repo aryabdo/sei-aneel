@@ -794,14 +794,15 @@ class SEIAneel:
             self.logger.error(f"Erro na busca redundante de interessados: {e}")
         return ""
 
-    def extrair_lista_protocolos_concatenado(self) -> Tuple[str, str, str, str, str]:
+    def extrair_lista_protocolos_concatenado(self) -> Tuple[str, str, str, str, str, str]:
         """Extrai lista de protocolos/documentos"""
         try:
             tabela = self.driver.find_element(By.ID, "tblDocumentos")
             linhas = tabela.find_elements(By.XPATH, ".//tr")[1:]  # Pula cabeçalho
-            
-            doc_nrs, doc_tipos, doc_datas, doc_inclusoes, doc_unidades = [], [], [], [], []
-            
+
+            doc_nrs, doc_tipos, doc_datas = [], [], []
+            doc_inclusoes, doc_unidades, doc_links = [], [], []
+
             for linha in linhas:
                 tds = linha.find_elements(By.TAG_NAME, "td")
                 if len(tds) >= 6:
@@ -810,17 +811,23 @@ class SEIAneel:
                     doc_datas.append(tds[3].text.strip())
                     doc_inclusoes.append(tds[4].text.strip())
                     doc_unidades.append(tds[5].text.strip())
-            
+                    try:
+                        link_elem = tds[1].find_element(By.TAG_NAME, "a")
+                        doc_links.append(link_elem.get_attribute("href"))
+                    except Exception:
+                        doc_links.append("")
+
             return (
                 "\n".join(doc_nrs),
                 "\n".join(doc_tipos),
                 "\n".join(doc_datas),
                 "\n".join(doc_inclusoes),
                 "\n".join(doc_unidades),
+                "\n".join(doc_links),
             )
         except Exception as e:
             self.logger.error(f"Erro ao extrair lista de protocolos: {e}")
-            return "", "", "", "", ""
+            return "", "", "", "", "", ""
 
     def extrair_andamentos_concatenado(self) -> Tuple[str, str, str]:
         """Extrai andamentos do processo"""
@@ -886,7 +893,7 @@ class PlanilhaHandler:
         if row_idx:
             self.logger.info(f"Atualizando linha {row_idx} para processo {proc_number}")
             operacao_com_retry(
-                lambda: self.sheet.update(values=[linha], range_name=f"A{row_idx}:K{row_idx}"),
+                lambda: self.sheet.update(values=[linha], range_name=f"A{row_idx}:L{row_idx}"),
                 logger=self.logger
             )
             return "atualizado"
@@ -1229,7 +1236,7 @@ def processar_processo(proc: str, driver, planilha_handler: PlanilhaHandler,
         if ui:
             print(f"{Fore.CYAN}  📄 Extraindo detalhes...")
         detalhes = sei.extrair_detalhes_processo()
-        doc_nr, doc_tipo, doc_data, doc_incl, doc_uni = sei.extrair_lista_protocolos_concatenado()
+        doc_nr, doc_tipo, doc_data, doc_incl, doc_uni, doc_links = sei.extrair_lista_protocolos_concatenado()
         and_datas, and_unids, and_descrs = sei.extrair_andamentos_concatenado()
 
         interessados = detalhes.get("Interessados", "")
@@ -1248,6 +1255,7 @@ def processar_processo(proc: str, driver, planilha_handler: PlanilhaHandler,
             and_datas,
             and_unids,
             and_descrs,
+            doc_links,
         ]
 
         if ui:
@@ -1474,15 +1482,18 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
                     ]
                     
                     tabela_basica = f"<table class=\"detalhes\">{''.join(linhas)}</table>"
-                    doc_campos = ['Documento', 'Tipo do documento', 'Data do documento', 'Data de Inclusão', 'Unidade']
+                    doc_campos = ['Documento', 'Tipo do documento', 'Data do documento', 'Data de Inclusão', 'Unidade', 'Link']
                     and_campos = ['Data/Hora do Andamento', 'Unidade do Andamento', 'Descrição do Andamento']
                     docs = organizar_colunas(dados, doc_campos, 'Data de Inclusão')
                     andamentos = organizar_colunas(dados, and_campos, 'Data/Hora do Andamento')
+                    links_html = '<br>'.join(
+                        f'<a href="{l}">{l}</a>' for l in docs.get('Link', '').split('<br>') if l
+                    )
                     tabela_colunas = f"""
                     <table class=\"detalhes\">
                         <tr>
                             <th>Documento</th><th>Tipo do documento</th><th>Data do documento</th>
-                            <th>Data de Inclusão</th><th>Unidade</th>
+                            <th>Data de Inclusão</th><th>Unidade</th><th>Link</th>
                             <th>Data/Hora do Andamento</th><th>Unidade do Andamento</th><th>Descrição do Andamento</th>
                         </tr>
                         <tr>
@@ -1491,6 +1502,7 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
                             <td>{docs.get('Data do documento', '')}</td>
                             <td>{docs.get('Data de Inclusão', '')}</td>
                             <td>{docs.get('Unidade', '')}</td>
+                            <td>{links_html}</td>
                             <td>{andamentos.get('Data/Hora do Andamento', '')}</td>
                             <td>{andamentos.get('Unidade do Andamento', '')}</td>
                             <td>{andamentos.get('Descrição do Andamento', '')}</td>
@@ -1597,7 +1609,13 @@ def enviar_tabela_completa_email(planilha_handler: PlanilhaHandler,
         cab_html = ''.join(f'<th>{html.escape(c)}</th>' for c in cabecalho)
         linhas_html = ''
         for linha in linhas:
-            linha_html = ''.join(f'<td>{html.escape(col)}</td>' for col in linha)
+            linha_html = ''
+            for idx, col in enumerate(linha):
+                if idx < len(cabecalho) and cabecalho[idx].strip().lower() == 'link' and col:
+                    esc = html.escape(col)
+                    linha_html += f'<td><a href="{esc}">{esc}</a></td>'
+                else:
+                    linha_html += f'<td>{html.escape(col)}</td>'
             linhas_html += f'<tr>{linha_html}</tr>'
 
         corpo_html = f"""
