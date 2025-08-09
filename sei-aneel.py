@@ -807,13 +807,27 @@ class SEIAneel:
             onclick = elem.get_attribute("onclick") or ""
             if onclick:
                 # Procura por uma URL absoluta no onclick
-                match = re.search(r"https?://[^'\"]+", onclick)
+                match = re.search(r"['\"](https?://[^'\"]+)['\"]", onclick)
                 if match:
-                    return match.group(0)
+                    return match.group(1)
                 # Procura por chamada ao controlador com path relativo
                 match = re.search(r"['\"](controlador\.php[^'\"]+)['\"]", onclick)
                 if match:
                     return urljoin(base_url, match.group(1))
+                # Procura chamadas de funções JavaScript com URL como primeiro argumento
+                match = re.search(r"abrir\w*\(\s*['\"]([^'\"]+)['\"]", onclick)
+                if match:
+                    url = match.group(1)
+                    return url if url.startswith('http') else urljoin(base_url, url)
+                # Procura window.open ou location.href
+                match = re.search(r"window\.open\(\s*['\"]([^'\"]+)['\"]", onclick)
+                if match:
+                    url = match.group(1)
+                    return url if url.startswith('http') else urljoin(base_url, url)
+                match = re.search(r"location\.href\s*=\s*['\"]([^'\"]+)['\"]", onclick)
+                if match:
+                    url = match.group(1)
+                    return url if url.startswith('http') else urljoin(base_url, url)
         except Exception as e:
             self.logger.debug(f"Falha ao extrair link de documento: {e}")
         return ""
@@ -1268,7 +1282,8 @@ def processar_processo(proc: str, driver, planilha_handler: PlanilhaHandler,
         for texto, link in zip_longest(doc_nr_list, doc_link_list, fillvalue=""):
             texto_safe = texto.replace('"', '\\"')
             if link:
-                doc_formula_parts.append(f'HYPERLINK("{link}", "{texto_safe}")')
+                link_safe = link.replace('"', '\\"')
+                doc_formula_parts.append(f'HYPERLINK("{link_safe}", "{texto_safe}")')
             else:
                 doc_formula_parts.append(f'"{texto_safe}"')
         doc_nr = "=" + "&CHAR(10)&".join(doc_formula_parts) if doc_formula_parts else ""
@@ -1526,7 +1541,8 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
                     doc_anchors = []
                     for texto, link in zip_longest(doc_textos, doc_links, fillvalue=''):
                         texto_esc = html.escape(texto)
-                        doc_anchors.append(f'<a href="{link}">{texto_esc}</a>' if link else texto_esc)
+                        link_esc = html.escape(link, quote=True)
+                        doc_anchors.append(f'<a href="{link_esc}">{texto_esc}</a>' if link else texto_esc)
                     docs_html = '<br>'.join(doc_anchors)
                     tabela_colunas = f"""
                     <table class=\"detalhes\">
@@ -1646,12 +1662,18 @@ def enviar_tabela_completa_email(planilha_handler: PlanilhaHandler,
 
         cab_html = ''.join(f'<th>{html.escape(c)}</th>' for c in cabecalho)
         linhas_html = ''
+        doc_idx = cabecalho.index('Documento') if 'Documento' in cabecalho else None
+        link_idx = cabecalho.index('Link') if 'Link' in cabecalho else None
         for linha in linhas:
             linha_html = ''
             for idx, col in enumerate(linha):
-                if idx < len(cabecalho) and cabecalho[idx].strip().lower() == 'link' and col:
-                    esc = html.escape(col)
-                    linha_html += f'<td><a href="{esc}">{esc}</a></td>'
+                if doc_idx is not None and idx == doc_idx and link_idx is not None and link_idx < len(linha) and linha[link_idx]:
+                    texto_esc = html.escape(col)
+                    link_esc = html.escape(linha[link_idx], quote=True)
+                    linha_html += f'<td><a href="{link_esc}">{texto_esc}</a></td>'
+                elif link_idx is not None and idx == link_idx and col:
+                    link_esc = html.escape(col, quote=True)
+                    linha_html += f'<td><a href="{link_esc}">{link_esc}</a></td>'
                 else:
                     linha_html += f'<td>{html.escape(col)}</td>'
             linhas_html += f'<tr>{linha_html}</tr>'
