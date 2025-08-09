@@ -117,7 +117,7 @@ install_pauta() {
 
 cat <<RUN > "$PAUTA_DIR/run.sh"
 #!/bin/bash
-DIR="\$(dirname "$0")"
+DIR="\$(dirname "\$0")"
 cd "\$DIR"
 export SEI_ANEEL_CONFIG="$CONFIG_FILE"
 PAUTA_DATA_DIR="\$DIR"
@@ -219,7 +219,7 @@ install_sorteio() {
 cat <<RUN > "$SORTEIO_DIR/run.sh"
 #!/bin/bash
 
-DIR="\$(dirname "$0")"
+DIR="\$(dirname "\$0")"
 cd "\$DIR"
 export SEI_ANEEL_CONFIG="$CONFIG_FILE"
 SORTEIO_DATA_DIR="\$DIR"
