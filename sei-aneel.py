@@ -49,6 +49,7 @@ import smtplib
 import platform
 import logging
 import shutil
+from itertools import zip_longest
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
@@ -911,17 +912,17 @@ class PlanilhaHandler:
     def atualizar_ou_inserir_processo(self, linha: List[str], proc_number: str) -> str:
         """Atualiza processo existente ou insere novo"""
         row_idx = self.find_row_by_proc_number(proc_number)
-        
+
         if row_idx:
             self.logger.info(f"Atualizando linha {row_idx} para processo {proc_number}")
             operacao_com_retry(
-                lambda: self.sheet.update(values=[linha], range_name=f"A{row_idx}:L{row_idx}"),
+                lambda: self.sheet.update(values=[linha], range_name=f"A{row_idx}:L{row_idx}", value_input_option="USER_ENTERED"),
                 logger=self.logger
             )
             return "atualizado"
         else:
             self.logger.info(f"Inserindo novo processo {proc_number}")
-            operacao_com_retry(lambda: self.sheet.append_row(linha), logger=self.logger)
+            operacao_com_retry(lambda: self.sheet.append_row(linha, value_input_option="USER_ENTERED"), logger=self.logger)
             return "inserido"
     
     def get_all_processos(self) -> List[str]:
@@ -1259,6 +1260,12 @@ def processar_processo(proc: str, driver, planilha_handler: PlanilhaHandler,
             print(f"{Fore.CYAN}  📄 Extraindo detalhes...")
         detalhes = sei.extrair_detalhes_processo()
         doc_nr, doc_tipo, doc_data, doc_incl, doc_uni, doc_links = sei.extrair_lista_protocolos_concatenado()
+        doc_nr_list = doc_nr.split("\n") if doc_nr else []
+        doc_link_list = doc_links.split("\n") if doc_links else []
+        doc_nr = "\n".join(
+            f'=HYPERLINK("{link}", "{texto}")' if link else texto
+            for texto, link in zip_longest(doc_nr_list, doc_link_list, fillvalue="")
+        )
         and_datas, and_unids, and_descrs = sei.extrair_andamentos_concatenado()
 
         interessados = detalhes.get("Interessados", "")
@@ -1508,23 +1515,26 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
                     and_campos = ['Data/Hora do Andamento', 'Unidade do Andamento', 'Descrição do Andamento']
                     docs = organizar_colunas(dados, doc_campos, 'Data de Inclusão')
                     andamentos = organizar_colunas(dados, and_campos, 'Data/Hora do Andamento')
-                    links_html = '<br>'.join(
-                        f'<a href="{l}">{l}</a>' for l in docs.get('Link', '').split('<br>') if l
-                    )
+                    doc_textos = docs.get('Documento', '').split('<br>') if docs.get('Documento') else []
+                    doc_links = docs.get('Link', '').split('<br>') if docs.get('Link') else []
+                    doc_anchors = []
+                    for texto, link in zip_longest(doc_textos, doc_links, fillvalue=''):
+                        texto_esc = html.escape(texto)
+                        doc_anchors.append(f'<a href="{link}">{texto_esc}</a>' if link else texto_esc)
+                    docs_html = '<br>'.join(doc_anchors)
                     tabela_colunas = f"""
                     <table class=\"detalhes\">
                         <tr>
                             <th>Documento</th><th>Tipo do documento</th><th>Data do documento</th>
-                            <th>Data de Inclusão</th><th>Unidade</th><th>Link</th>
+                            <th>Data de Inclusão</th><th>Unidade</th>
                             <th>Data/Hora do Andamento</th><th>Unidade do Andamento</th><th>Descrição do Andamento</th>
                         </tr>
                         <tr>
-                            <td>{docs.get('Documento', '')}</td>
+                            <td>{docs_html}</td>
                             <td>{docs.get('Tipo do documento', '')}</td>
                             <td>{docs.get('Data do documento', '')}</td>
                             <td>{docs.get('Data de Inclusão', '')}</td>
                             <td>{docs.get('Unidade', '')}</td>
-                            <td>{links_html}</td>
                             <td>{andamentos.get('Data/Hora do Andamento', '')}</td>
                             <td>{andamentos.get('Unidade do Andamento', '')}</td>
                             <td>{andamentos.get('Descrição do Andamento', '')}</td>
