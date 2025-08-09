@@ -86,14 +86,6 @@ CFG
   echo -e "${GREEN}Instalação concluída.${NC}"
 }
 
-update_sei() {
-  if [ -f "$UPDATE_SCRIPT" ]; then
-    sudo bash "$UPDATE_SCRIPT"
-  else
-    echo -e "${RED}Script de atualização não encontrado em $UPDATE_SCRIPT.${NC}"
-  fi
-}
-
 remove_sei() {
   crontab -l 2>/dev/null | grep -v 'sei-aneel.py' | crontab -
   sudo rm -rf "$SCRIPT_DIR"
@@ -314,9 +306,11 @@ install_dependencies_only() {
 }
 
 update_global() {
-  update_sei
-  update_pauta
-  update_sorteio
+  if [ -f "$UPDATE_SCRIPT" ]; then
+    sudo bash "$UPDATE_SCRIPT"
+  else
+    echo -e "${RED}Script de atualização não encontrado em $UPDATE_SCRIPT.${NC}"
+  fi
 }
 
 remove_all_modules() {
