@@ -248,8 +248,11 @@ def send_email(subject, body_plain, body_html, pdf_path=None):
         )
         body_plain += aviso
         body_html = body_html.replace("</body></html>", f"<p>{aviso}</p></body></html>")
-    msg.attach(MIMEText(body_plain, "plain"))
-    msg.attach(MIMEText(body_html, "html"))
+
+    alternative_part = MIMEMultipart('alternative')
+    alternative_part.attach(MIMEText(body_plain, "plain", "utf-8"))
+    alternative_part.attach(MIMEText(body_html, "html", "utf-8"))
+    msg.attach(alternative_part)
 
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
