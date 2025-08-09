@@ -17,6 +17,7 @@ import subprocess
 from urllib.parse import urljoin
 import hashlib
 from pathlib import Path
+import html
 
 # Garante que o diretório raiz do projeto esteja no ``PYTHONPATH``.
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -70,6 +71,30 @@ def palavra_chave_no_texto(texto, palavras_chave):
         if chave_norm in texto_norm or chave_norm + "s" in texto_norm:
             return True
     return False
+
+
+def format_html_email(title, content_html):
+    timestamp_str = datetime.now().strftime('%d/%m/%Y às %H:%M:%S')
+    return f"""<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        .header {{ color: #2c5aa0; border-bottom: 2px solid #2c5aa0; padding-bottom: 10px; }}
+        .section {{ margin: 20px 0; }}
+        .item {{ background-color: #e8f4f8; border-left: 4px solid #2c5aa0; padding: 10px; margin: 5px 0; }}
+        .timestamp {{ color: #888; font-size: 0.9em; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>{title}</h2>
+        <div class="timestamp">Gerado em: {timestamp_str}</div>
+    </div>
+    {content_html}
+    <div class="section">
+        <p><small>Este é um email automático do sistema de monitoramento SEI ANEEL.</small></p>
+    </div>
+</body></html>"""
 
 def parse_date(date_str):
     try:
@@ -223,8 +248,11 @@ def send_email(subject, body_plain, body_html, pdf_path=None):
         )
         body_plain += aviso
         body_html = body_html.replace("</body></html>", f"<p>{aviso}</p></body></html>")
-    msg.attach(MIMEText(body_plain, "plain"))
-    msg.attach(MIMEText(body_html, "html"))
+
+    alternative_part = MIMEMultipart('alternative')
+    alternative_part.attach(MIMEText(body_plain, "plain", "utf-8"))
+    alternative_part.attach(MIMEText(body_html, "html", "utf-8"))
+    msg.attach(alternative_part)
 
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
@@ -268,12 +296,13 @@ def main():
         print("Nenhum link associado à data encontrada.")
         subject = f"{hoje_str} Busca Pauta ANEEL - Nenhuma data encontrada"
         body = "Nao encontrada pauta para data indicada! Atenciosamente, Ary Abdo!"
-        body_html = (
-            "<html><body style='font-family: Arial, sans-serif;'>"
+        content_html = (
+            "<div class=\"section\">"
             "<p>Nao encontrada pauta para data indicada!</p>"
             "<p>Atenciosamente,<br>Ary Abdo</p>"
-            "</body></html>"
+            "</div>"
         )
+        body_html = format_html_email("Pauta da Próxima Reunião ANEEL", content_html)
         if execucao_manual:
             send_email(subject, body, body_html)
         registrar_log("Nenhum link associado à data encontrada. Nenhum e-mail enviado.")
@@ -291,36 +320,40 @@ def main():
 
     if items:
         body = "Foram encontrados os processos listados abaixo na pauta da próxima reuniao da ANEEL:\n\n"
-        body_html = (
-            "<html><body style='font-family: Arial, sans-serif;'>"
-            "<p>Foram encontrados os processos listados abaixo na pauta da próxima reuniao da ANEEL:</p>"
+        content_html = (
+            "<div class=\"section\">"
+            f"<h3>📋 Processos Encontrados ({len(items)})</h3>"
             "<ul>"
         )
         for item in items:
             body += item["text"] + "\n"
-            body_html += f"<li>{item['text']}"
+            item_html = html.escape(item["text"])
+            content_html += f"<li class=\"item\">{item_html}"
             registrar_log("Processo encontrado:\n" + item["text"])
             if item["pdfs"]:
-                body_html += "<ul>"
+                content_html += "<ul>"
                 for pdf in item["pdfs"]:
                     body += f"(Acesse o documento PDF: {pdf['pdf_url']})\n"
-                    body_html += f"<li><a href='{pdf['pdf_url']}'>{pdf['pdf_filename']}</a></li>"
-                body_html += "</ul>"
+                    link_html = html.escape(pdf['pdf_filename'])
+                    content_html += f"<li><a href='{pdf['pdf_url']}'>{link_html}</a></li>"
+                content_html += "</ul>"
                 body += "\n"
             else:
                 body += "Documentos nao disponibilizados.\n\n"
-                body_html += "<p>Documentos nao disponibilizados.</p>"
-            body_html += "</li>"
+                content_html += "<p>Documentos nao disponibilizados.</p>"
+            content_html += "</li>"
         body += "\nAtenciosamente,\nAry Abdo"
-        body_html += "</ul><p>Atenciosamente,<br>Ary Abdo</p></body></html>"
+        content_html += "</ul><p>Atenciosamente,<br>Ary Abdo</p></div>"
+        body_html = format_html_email("Pauta da Próxima Reunião ANEEL", content_html)
     else:
         body = "Ola! Nao foram encontrados processos listados na pauta na data de pesquisa!\n\nAtenciosamente, Ary Abdo!"
-        body_html = (
-            "<html><body style='font-family: Arial, sans-serif;'>"
+        content_html = (
+            "<div class=\"section\">"
             "<p>Ola! Nao foram encontrados processos listados na pauta na data de pesquisa!</p>"
             "<p>Atenciosamente,<br>Ary Abdo</p>"
-            "</body></html>"
+            "</div>"
         )
+        body_html = format_html_email("Pauta da Próxima Reunião ANEEL", content_html)
         registrar_log("Nenhum processo relevante encontrado.")
 
     print("Itens relevantes encontrados:" if items else "Nenhum item relevante encontrado.")
