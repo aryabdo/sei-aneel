@@ -12,6 +12,7 @@ CONFIG_DIR="$SCRIPT_DIR/config"
 CONFIG_FILE="$CONFIG_DIR/configs.json"
 LOG_DIR="$SCRIPT_DIR/logs"
 REPO_URL="https://github.com/aryabdo/sei-aneel.git"
+UPDATE_SCRIPT="$SCRIPT_DIR/update_repo.sh"
 
 export SEI_ANEEL_CONFIG="$CONFIG_FILE"
 
@@ -36,7 +37,7 @@ install_sei() {
   sudo rm -rf "$SCRIPT_DIR"
   sudo mkdir -p "$SCRIPT_DIR" "$LOG_DIR"
   sudo cp -r config "$SCRIPT_DIR/"
-  sudo cp sei-aneel.py manage_processes.py backup_manager.py test_connectivity.py requirements.txt "$SCRIPT_DIR/"
+  sudo cp sei-aneel.py manage_processes.py backup_manager.py test_connectivity.py requirements.txt update_repo.sh "$SCRIPT_DIR/"
   sudo cp "$CRED" "$CONFIG_DIR/credentials.json"
   sudo chown -R "$USER":"$USER" "$SCRIPT_DIR"
 
@@ -85,14 +86,11 @@ CFG
 }
 
 update_sei() {
-  TMP_DIR=$(mktemp -d)
-  git clone "$REPO_URL" "$TMP_DIR" >/dev/null 2>&1
-  sudo cp "$TMP_DIR/sei-aneel.py" "$TMP_DIR/manage_processes.py" "$TMP_DIR/backup_manager.py" "$TMP_DIR/test_connectivity.py" "$TMP_DIR/sei-aneel.sh" "$TMP_DIR/requirements.txt" "$SCRIPT_DIR/"
-  sudo cp -r "$TMP_DIR/config" "$SCRIPT_DIR/"
-  sudo chown -R "$USER":"$USER" "$SCRIPT_DIR"
-
-  rm -rf "$TMP_DIR"
-  echo -e "${GREEN}Atualização concluída.${NC}"
+  if [ -f "$UPDATE_SCRIPT" ]; then
+    sudo bash "$UPDATE_SCRIPT"
+  else
+    echo -e "${RED}Script de atualização não encontrado em $UPDATE_SCRIPT.${NC}"
+  fi
 }
 
 remove_sei() {
