@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT_DIR))
 
-from config import load_config
+from config import load_config, load_search_terms
 
 # Diretório de dados e arquivos de log
 DATA_DIR = os.environ.get("SORTEIO_DATA_DIR", os.path.join(os.path.expanduser("~"), ".sorteio_aneel"))
@@ -56,8 +56,8 @@ LAST_RESULT_FILE = os.environ.get(
     "LAST_RESULT_FILE", os.path.join(DATA_DIR, "ultimo_resultado_aneel.json")
 )
 
-# Termos de pesquisa definidos no arquivo de configuração global
-KEYWORDS = CONFIG.get("keywords", {}).get("sorteio", [])
+# Termos de pesquisa centralizados em ``search_terms.txt``
+KEYWORDS = load_search_terms()
 
 def normalize(s):
     if not isinstance(s, str):

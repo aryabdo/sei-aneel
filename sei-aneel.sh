@@ -10,6 +10,7 @@ NC='\e[0m'
 SCRIPT_DIR="/opt/sei-aneel"
 CONFIG_DIR="$SCRIPT_DIR/config"
 CONFIG_FILE="$CONFIG_DIR/configs.json"
+TERMS_FILE="$CONFIG_DIR/search_terms.txt"
 LOG_DIR="$SCRIPT_DIR/logs"
 REPO_URL="https://github.com/aryabdo/sei-aneel.git"
 UPDATE_SCRIPT="$SCRIPT_DIR/update_repo.sh"
@@ -624,6 +625,71 @@ test_connectivity() {
 }
 
 
+# Gerenciamento dos termos de pesquisa utilizados pelos módulos Python
+list_terms() {
+  if [ -f "$TERMS_FILE" ]; then
+    nl -ba "$TERMS_FILE"
+  else
+    echo -e "${YELLOW}Arquivo de termos não encontrado.${NC}"
+  fi
+}
+
+add_term() {
+  read -p $'\e[33mNovo termo: \e[0m' TERM
+  TERM=$(echo "$TERM" | xargs)
+  if [ -z "$TERM" ]; then
+    echo -e "${RED}Termo inválido.${NC}"
+    return
+  fi
+  touch "$TERMS_FILE"
+  if grep -Fxq "$TERM" "$TERMS_FILE" 2>/dev/null; then
+    echo -e "${YELLOW}Termo já existente.${NC}"
+  else
+    echo "$TERM" >> "$TERMS_FILE"
+    echo -e "${GREEN}Termo adicionado.${NC}"
+  fi
+}
+
+remove_term() {
+  if [ ! -f "$TERMS_FILE" ]; then
+    echo -e "${YELLOW}Nenhum termo cadastrado.${NC}"
+    return
+  fi
+  mapfile -t TERMS < "$TERMS_FILE"
+  if [ ${#TERMS[@]} -eq 0 ]; then
+    echo -e "${YELLOW}Nenhum termo cadastrado.${NC}"
+    return
+  fi
+  for i in "${!TERMS[@]}"; do
+    echo "$((i+1))) ${TERMS[$i]}"
+  done
+  read -p $'\e[33mNúmero do termo a excluir: \e[0m' IDX
+  if [[ "$IDX" =~ ^[0-9]+$ ]] && [ "$IDX" -ge 1 ] && [ "$IDX" -le "${#TERMS[@]}" ]; then
+    unset 'TERMS[IDX-1]'
+    printf "%s\n" "${TERMS[@]}" > "$TERMS_FILE"
+    echo -e "${GREEN}Termo removido.${NC}"
+  else
+    echo -e "${RED}Opção inválida.${NC}"
+  fi
+}
+
+search_terms_menu() {
+  while true; do
+    echo -e "${CYAN}1) Listar${NC}"
+    echo -e "${CYAN}2) Incluir${NC}"
+    echo -e "${CYAN}3) Excluir${NC}"
+    echo -e "${CYAN}4) Voltar${NC}"
+    read -p $'\e[33mOpção: \e[0m' op
+    case $op in
+      1) list_terms ;;
+      2) add_term ;;
+      3) remove_term ;;
+      4) break ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
+    esac
+  done
+}
+
 backup_menu() {
   while true; do
     echo -e "${CYAN}1) Backup local${NC}"
@@ -654,18 +720,20 @@ connection_config_menu() {
 
 config_menu() {
   while true; do
-    echo -e "${CYAN}1) Configurações de conexão${NC}"
-    echo -e "${CYAN}2) Teste de conectividade${NC}"
-    echo -e "${CYAN}3) Configurações CRON${NC}"
-    echo -e "${CYAN}4) Backup${NC}"
-    echo -e "${CYAN}5) Voltar${NC}"
+    echo -e "${CYAN}1) Termos de Pesquisa${NC}"
+    echo -e "${CYAN}2) Configurações de conexão${NC}"
+    echo -e "${CYAN}3) Teste de conectividade${NC}"
+    echo -e "${CYAN}4) Configurações CRON${NC}"
+    echo -e "${CYAN}5) Backup${NC}"
+    echo -e "${CYAN}6) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) connection_config_menu ;;
-      2) test_connectivity ;;
-      3) cron_menu ;;
-      4) backup_menu ;;
-      5) break ;;
+      1) search_terms_menu ;;
+      2) connection_config_menu ;;
+      3) test_connectivity ;;
+      4) cron_menu ;;
+      5) backup_menu ;;
+      6) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
@@ -673,26 +741,18 @@ config_menu() {
 
 sei_menu() {
   while true; do
-    echo -e "${CYAN}1) Instalar${NC}"
-    echo -e "${CYAN}2) Atualizar${NC}"
-    echo -e "${CYAN}3) Remover${NC}"
-    echo -e "${CYAN}4) Gerenciar processos${NC}"
-    echo -e "${CYAN}5) Testar conectividade${NC}"
-    echo -e "${CYAN}6) Execução Manual${NC}"
-    echo -e "${CYAN}7) Gerenciar cron${NC}"
-    echo -e "${CYAN}8) Ver logs${NC}"
-    echo -e "${CYAN}9) Voltar${NC}"
+    echo -e "${CYAN}1) Gerenciar processos${NC}"
+    echo -e "${CYAN}2) Testar conectividade${NC}"
+    echo -e "${CYAN}3) Execução Manual${NC}"
+    echo -e "${CYAN}4) Ver logs${NC}"
+    echo -e "${CYAN}5) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
-      1) install_sei ;;
-      2) update_sei ;;
-      3) remove_sei ;;
-      4) manage_processes_menu ;;
-      5) test_connectivity ;;
-      6) force_run ;;
-      7) cron_menu ;;
-      8) view_logs ;;
-      9) break ;;
+      1) manage_processes_menu ;;
+      2) test_connectivity ;;
+      3) force_run ;;
+      4) view_logs ;;
+      5) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
@@ -702,22 +762,14 @@ sei_menu() {
 pauta_menu() {
   LOG_DIR="$PAUTA_LOG_DIR"
   while true; do
-    echo -e "${CYAN}1) Instalar${NC}"
-    echo -e "${CYAN}2) Atualizar${NC}"
-    echo -e "${CYAN}3) Remover${NC}"
-    echo -e "${CYAN}4) Execução Manual${NC}"
-    echo -e "${CYAN}5) Gerenciar cron${NC}"
-    echo -e "${CYAN}6) Ver logs${NC}"
-    echo -e "${CYAN}7) Voltar${NC}"
+    echo -e "${CYAN}1) Execução Manual${NC}"
+    echo -e "${CYAN}2) Ver logs${NC}"
+    echo -e "${CYAN}3) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
-      1) install_pauta ;;
-      2) update_pauta ;;
-      3) remove_pauta ;;
-      4) force_run_pauta ;;
-      5) cron_menu_pauta ;;
-      6) view_logs_pauta ;;
-      7) break ;;
+      1) force_run_pauta ;;
+      2) view_logs_pauta ;;
+      3) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
@@ -727,22 +779,14 @@ pauta_menu() {
 sorteio_menu() {
   LOG_DIR="$SORTEIO_LOG_DIR"
   while true; do
-    echo -e "${CYAN}1) Instalar${NC}"
-    echo -e "${CYAN}2) Atualizar${NC}"
-    echo -e "${CYAN}3) Remover${NC}"
-    echo -e "${CYAN}4) Execução Manual${NC}"
-    echo -e "${CYAN}5) Gerenciar cron${NC}"
-    echo -e "${CYAN}6) Ver logs${NC}"
-    echo -e "${CYAN}7) Voltar${NC}"
+    echo -e "${CYAN}1) Execução Manual${NC}"
+    echo -e "${CYAN}2) Ver logs${NC}"
+    echo -e "${CYAN}3) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
-      1) install_sorteio ;;
-      2) update_sorteio ;;
-      3) remove_sorteio ;;
-      4) force_run_sorteio ;;
-      5) cron_menu_sorteio ;;
-      6) view_logs_sorteio ;;
-      7) break ;;
+      1) force_run_sorteio ;;
+      2) view_logs_sorteio ;;
+      3) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done

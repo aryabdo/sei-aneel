@@ -13,7 +13,7 @@ import json
 import os
 import shutil
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 # Directory where configuration files are stored.  ``SEI_ANEEL_CONFIG`` can be
 # used to override the location of ``configs.json``; otherwise the project uses
@@ -66,6 +66,33 @@ _DEFAULT_SORTEIO_KEYWORDS = [
     "interligacao eletrica",
 ]
 
+# Caminho do arquivo que concentra os termos de pesquisa
+DEFAULT_TERMS_PATH = CONFIG_DIR / "search_terms.txt"
+
+# Lista de termos padrão utilizada para preencher o arquivo quando inexistente
+_DEFAULT_SEARCH_TERMS = sorted(
+    set(_DEFAULT_PAUTA_KEYWORDS + _DEFAULT_SORTEIO_KEYWORDS)
+)
+
+
+def ensure_terms_file(path: Path = DEFAULT_TERMS_PATH) -> None:
+    """Garante a existência do arquivo de termos de pesquisa."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.exists():
+        with open(path, "w", encoding="utf-8") as f:
+            for term in _DEFAULT_SEARCH_TERMS:
+                f.write(f"{term}\n")
+
+
+def load_search_terms(path: str | Path | None = None) -> List[str]:
+    """Carrega os termos de pesquisa a partir de ``search_terms.txt``."""
+
+    terms_path = Path(path) if path else DEFAULT_TERMS_PATH
+    ensure_terms_file(terms_path)
+    with open(terms_path, "r", encoding="utf-8") as f:
+        return [line.strip() for line in f if line.strip()]
+
 
 def load_config(path: str | Path | None = None) -> Dict[str, Any]:
     """Return configuration dictionary from JSON file.
@@ -89,13 +116,14 @@ def load_config(path: str | Path | None = None) -> Dict[str, Any]:
     smtp.setdefault("port", 587)
     smtp.setdefault("starttls", False)
 
-    keywords = config.setdefault("keywords", {})
-    keywords.setdefault("pauta", _DEFAULT_PAUTA_KEYWORDS)
-    keywords.setdefault("sorteio", _DEFAULT_SORTEIO_KEYWORDS)
-
     config.setdefault("email", {}).setdefault("recipients", [])
 
     return config
 
 
-__all__ = ["load_config", "DEFAULT_CONFIG_PATH", "ensure_config_file"]
+__all__ = [
+    "load_config",
+    "DEFAULT_CONFIG_PATH",
+    "ensure_config_file",
+    "load_search_terms",
+]
