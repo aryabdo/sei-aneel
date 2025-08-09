@@ -1,6 +1,7 @@
 #!/bin/bash
 # Atualiza o projeto SEI ANEEL preservando as configuracoes de conexao,
 # termos de pesquisa e agendamentos do cron.
+set -e
 
 REPO_URL="https://github.com/aryabdo/sei-aneel.git"
 TARGET_DIR="/opt/sei-aneel"
@@ -32,6 +33,14 @@ cd /
 sudo rm -rf "$TARGET_DIR" "$PAUTA_DIR" "$SORTEIO_DIR"
 rm -rf "$LOCAL_REPO"
 
+# confirma remoção
+if [ -d "$TARGET_DIR" ] || [ -d "$PAUTA_DIR" ] || [ -d "$SORTEIO_DIR" ] || [ -d "$LOCAL_REPO" ]; then
+  echo "Erro: diretórios antigos não foram removidos." >&2
+  exit 1
+else
+  echo "Diretórios antigos removidos."
+fi
+
 # garante que git está instalado
 if ! command -v git >/dev/null 2>&1; then
   sudo apt-get update
@@ -41,15 +50,29 @@ fi
 # clona repositório na pasta do usuário
 git clone "$REPO_URL" "$LOCAL_REPO"
 
+# verifica clone
+if [ ! -d "$LOCAL_REPO/.git" ]; then
+  echo "Erro: falha ao clonar repositório." >&2
+  exit 1
+else
+  echo "Repositório clonado em $LOCAL_REPO."
+fi
+
 # copia para diretório de instalação
 sudo mkdir -p "$TARGET_DIR"
 sudo cp -a "$LOCAL_REPO"/. "$TARGET_DIR/"
+
+if [ ! -f "$TARGET_DIR/sei-aneel.py" ]; then
+  echo "Erro: cópia para $TARGET_DIR falhou." >&2
+  exit 1
+fi
 
 # restaura configuracoes
 if [ -d "$TEMP_DIR/config" ]; then
   sudo rm -rf "$CONFIG_DIR"
   sudo mv "$TEMP_DIR/config" "$CONFIG_DIR"
   cp -a "$CONFIG_DIR" "$LOCAL_REPO/" 2>/dev/null
+  echo "Configurações restauradas."
 fi
 
 # instala dependências do sistema e python
@@ -91,6 +114,13 @@ PYTHONPATH="$TARGET_DIR:\$PYTHONPATH" python3 "\$DIR/sorteio_aneel.py" "\$@"
 RUN
 sudo chmod +x "$SORTEIO_DIR/run.sh"
 
+if [ -f "$PAUTA_DIR/run.sh" ] && [ -f "$SORTEIO_DIR/run.sh" ]; then
+  echo "Módulos instalados com sucesso."
+else
+  echo "Erro: instalação dos módulos falhou." >&2
+  exit 1
+fi
+
 # restaura crontab se existir
 if [ -s "$CRON_BACKUP" ]; then
   crontab "$CRON_BACKUP"
@@ -102,4 +132,4 @@ sudo chown -R "$USER":"$USER" "$TARGET_DIR" "$PAUTA_DIR" "$SORTEIO_DIR"
 # limpa temporários
 rm -rf "$TEMP_DIR"
 
-echo "Atualização concluída."
+echo "Atualização global concluída."
