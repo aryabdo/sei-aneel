@@ -49,6 +49,7 @@ import smtplib
 import platform
 import logging
 import shutil
+from urllib.parse import urljoin
 from itertools import zip_longest
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -798,9 +799,10 @@ class SEIAneel:
     def _extrair_link_documento(self, elem) -> str:
         """Obtém o link real do documento a partir do elemento de âncora."""
         try:
+            base_url = "https://sei.aneel.gov.br/"
             href = elem.get_attribute("href")
             if href and href != "javascript:void(0);" and not href.startswith("javascript:"):
-                return href
+                return urljoin(base_url, href)
 
             onclick = elem.get_attribute("onclick") or ""
             if onclick:
@@ -811,7 +813,7 @@ class SEIAneel:
                 # Procura por chamada ao controlador com path relativo
                 match = re.search(r"['\"](controlador\.php[^'\"]+)['\"]", onclick)
                 if match:
-                    return f"https://sei.aneel.gov.br/sei/{match.group(1)}"
+                    return urljoin(base_url, match.group(1))
         except Exception as e:
             self.logger.debug(f"Falha ao extrair link de documento: {e}")
         return ""
@@ -1262,10 +1264,14 @@ def processar_processo(proc: str, driver, planilha_handler: PlanilhaHandler,
         doc_nr, doc_tipo, doc_data, doc_incl, doc_uni, doc_links = sei.extrair_lista_protocolos_concatenado()
         doc_nr_list = doc_nr.split("\n") if doc_nr else []
         doc_link_list = doc_links.split("\n") if doc_links else []
-        doc_nr = "\n".join(
-            f'=HYPERLINK("{link}", "{texto}")' if link else texto
-            for texto, link in zip_longest(doc_nr_list, doc_link_list, fillvalue="")
-        )
+        doc_formula_parts = []
+        for texto, link in zip_longest(doc_nr_list, doc_link_list, fillvalue=""):
+            texto_safe = texto.replace('"', '\\"')
+            if link:
+                doc_formula_parts.append(f'HYPERLINK("{link}", "{texto_safe}")')
+            else:
+                doc_formula_parts.append(f'"{texto_safe}"')
+        doc_nr = "=" + "&CHAR(10)&".join(doc_formula_parts) if doc_formula_parts else ""
         and_datas, and_unids, and_descrs = sei.extrair_andamentos_concatenado()
 
         interessados = detalhes.get("Interessados", "")
