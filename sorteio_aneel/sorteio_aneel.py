@@ -219,10 +219,10 @@ def send_email(subject, body, pdf_path=None):
 def main():
     if len(sys.argv) > 1:
         data_pesquisa = sys.argv[1]
-        forcar_envio = True
+        execucao_manual = True
     else:
         data_pesquisa = None
-        forcar_envio = False
+        execucao_manual = False
 
     hoje = datetime.now()
     hoje_str = hoje.strftime("%d/%m/%Y")
@@ -233,7 +233,7 @@ def main():
         print("Nenhum link associado à data encontrada.")
         subject = f"{hoje_str} Busca Sorteio ANEEL - Nenhuma data encontrada"
         body = "Nao encontrado sorteio para data indicada! Atenciosamente, Ary Abdo!"
-        if forcar_envio:
+        if execucao_manual:
             send_email(subject, body)
         registrar_log("Nenhum link associado à data encontrada. Nenhum e-mail enviado.")
         return
@@ -243,7 +243,7 @@ def main():
     items_anteriores = ultimo_resultado.get("items", [])
     data_encontrada_anterior = ultimo_resultado.get("data_encontrada")
 
-    if not forcar_envio and items == items_anteriores:
+    if not execucao_manual and items == items_anteriores:
         print("Nenhuma atualização nos itens encontrados.")
         registrar_log("Nenhuma atualização nos itens encontrados.")
         return
@@ -271,7 +271,7 @@ def main():
     print("Itens relevantes encontrados:" if items else "Nenhum item relevante encontrado.")
     print(body)
     send_email(subject, body, pdf_path)
-    if not forcar_envio:
+    if not execucao_manual:
         salvar_ultimo_resultado(data_encontrada, items)
     if pdf_path and os.path.exists(pdf_path):
         os.remove(pdf_path)
