@@ -200,7 +200,7 @@ def gerar_pdf_da_pagina(url, pdf_file):
         registrar_log(f"Erro ao gerar PDF: {e}")
         return False
 
-def send_email(subject, body, pdf_path=None):
+def send_email(subject, body_plain, body_html, pdf_path=None):
     msg = MIMEMultipart()
     msg["From"] = SMTP_USER
     msg["To"] = EMAIL_TO
@@ -218,8 +218,13 @@ def send_email(subject, body, pdf_path=None):
             pdf_attached = True
     else:
         print("PDF não gerado ou está vazio, não será anexado.")
-        body += "\n\nATENÇÃO: Não foi possível anexar o PDF da página, pois ocorreu um erro na geração do arquivo.\n"
-    msg.attach(MIMEText(body, "plain"))
+        aviso = (
+            "\n\nATENÇÃO: Não foi possível anexar o PDF da página, pois ocorreu um erro na geração do arquivo.\n"
+        )
+        body_plain += aviso
+        body_html = body_html.replace("</body></html>", f"<p>{aviso}</p></body></html>")
+    msg.attach(MIMEText(body_plain, "plain"))
+    msg.attach(MIMEText(body_html, "html"))
 
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
@@ -228,7 +233,7 @@ def send_email(subject, body, pdf_path=None):
             server.sendmail(SMTP_USER, to_emails, msg.as_string())
         print("E-mail enviado com sucesso.")
         registrar_log(f"E-mail enviado para {EMAIL_TO}")
-        registrar_log("Corpo do e-mail:\n" + body + "\n---")
+        registrar_log("Corpo do e-mail:\n" + body_plain + "\n---")
     except Exception as e:
         print(f"Erro ao enviar e-mail: {e}")
         registrar_log(f"Falha ao enviar e-mail: {e}")
@@ -263,8 +268,14 @@ def main():
         print("Nenhum link associado à data encontrada.")
         subject = f"{hoje_str} Busca Pauta ANEEL - Nenhuma data encontrada"
         body = "Nao encontrada pauta para data indicada! Atenciosamente, Ary Abdo!"
+        body_html = (
+            "<html><body style='font-family: Arial, sans-serif;'>"
+            "<p>Nao encontrada pauta para data indicada!</p>"
+            "<p>Atenciosamente,<br>Ary Abdo</p>"
+            "</body></html>"
+        )
         if execucao_manual:
-            send_email(subject, body)
+            send_email(subject, body, body_html)
         registrar_log("Nenhum link associado à data encontrada. Nenhum e-mail enviado.")
         return
 
@@ -280,18 +291,36 @@ def main():
 
     if items:
         body = "Foram encontrados os processos listados abaixo na pauta da próxima reuniao da ANEEL:\n\n"
+        body_html = (
+            "<html><body style='font-family: Arial, sans-serif;'>"
+            "<p>Foram encontrados os processos listados abaixo na pauta da próxima reuniao da ANEEL:</p>"
+            "<ul>"
+        )
         for item in items:
             body += item["text"] + "\n"
+            body_html += f"<li>{item['text']}"
             registrar_log("Processo encontrado:\n" + item["text"])
             if item["pdfs"]:
+                body_html += "<ul>"
                 for pdf in item["pdfs"]:
                     body += f"(Acesse o documento PDF: {pdf['pdf_url']})\n"
+                    body_html += f"<li><a href='{pdf['pdf_url']}'>{pdf['pdf_filename']}</a></li>"
+                body_html += "</ul>"
                 body += "\n"
             else:
                 body += "Documentos nao disponibilizados.\n\n"
+                body_html += "<p>Documentos nao disponibilizados.</p>"
+            body_html += "</li>"
         body += "\nAtenciosamente,\nAry Abdo"
+        body_html += "</ul><p>Atenciosamente,<br>Ary Abdo</p></body></html>"
     else:
         body = "Ola! Nao foram encontrados processos listados na pauta na data de pesquisa!\n\nAtenciosamente, Ary Abdo!"
+        body_html = (
+            "<html><body style='font-family: Arial, sans-serif;'>"
+            "<p>Ola! Nao foram encontrados processos listados na pauta na data de pesquisa!</p>"
+            "<p>Atenciosamente,<br>Ary Abdo</p>"
+            "</body></html>"
+        )
         registrar_log("Nenhum processo relevante encontrado.")
 
     print("Itens relevantes encontrados:" if items else "Nenhum item relevante encontrado.")
@@ -302,7 +331,7 @@ def main():
     hash_antigo = ler_ultimo_hash(hash_arquivo)
 
     if execucao_manual or (hash_atual != hash_antigo):
-        send_email(subject, body, pdf_path)
+        send_email(subject, body, body_html, pdf_path)
         salvar_hash(hash_arquivo, hash_atual)
         registrar_log("Conteúdo alterado/enviado. Hash atualizado.")
     else:
