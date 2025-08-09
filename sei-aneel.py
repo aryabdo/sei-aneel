@@ -799,7 +799,7 @@ class SEIAneel:
     def _extrair_link_documento(self, elem) -> str:
         """Obtém o link real do documento a partir do elemento de âncora."""
         try:
-            base_url = "https://sei.aneel.gov.br/"
+            base_url = "https://sei.aneel.gov.br/sei/"
             href = elem.get_attribute("href")
             if href and href != "javascript:void(0);" and not href.startswith("javascript:"):
                 return urljoin(base_url, href)
@@ -1283,7 +1283,7 @@ def processar_processo(proc: str, driver, planilha_handler: PlanilhaHandler,
             texto_safe = texto.replace('"', '\\"')
             if link:
                 link_safe = link.replace('"', '\\"')
-                doc_formula_parts.append(f'HYPERLINK("{link_safe}", "{texto_safe}")')
+                doc_formula_parts.append(f'HYPERLINK("{link_safe}"; "{texto_safe}")')
             else:
                 doc_formula_parts.append(f'"{texto_safe}"')
         doc_nr = "=" + "&CHAR(10)&".join(doc_formula_parts) if doc_formula_parts else ""
