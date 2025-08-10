@@ -15,10 +15,10 @@ import tempfile
 import subprocess
 from urllib.parse import urljoin
 import hashlib
-from pathlib import Path
 import html
 import logging
 import shutil
+import sys
 
 from ..config import load_config, load_search_terms
 from ..email_utils import format_html_email

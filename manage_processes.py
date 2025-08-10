@@ -2,9 +2,8 @@
 """Gerencia a planilha de processos no Google Sheets."""
 
 import argparse
-import json
 import re
-from pathlib import Path
+import sys
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials

@@ -14,10 +14,10 @@ import unicodedata
 import tempfile
 import subprocess
 import json
-from pathlib import Path
 import html
 import logging
 import shutil
+import sys
 
 from ..config import load_config, load_search_terms
 from ..email_utils import format_html_email
