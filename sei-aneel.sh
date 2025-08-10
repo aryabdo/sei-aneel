@@ -130,12 +130,12 @@ install_pauta() {
   log "Iniciando instalação da Pauta ANEEL"
   sudo rm -rf "$PAUTA_DIR"
   sudo mkdir -p "$PAUTA_LOG_DIR"
-  sudo cp pauta_aneel/pauta_aneel.py "$PAUTA_DIR/"
+  sudo cp sei_aneel/pauta_aneel/pauta_aneel.py "$PAUTA_DIR/"
   sudo cp requirements.txt "$PAUTA_DIR/"
   sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$PAUTA_DIR"
 
   sudo mkdir -p "$SCRIPT_DIR"
-  sudo cp -r config "$SCRIPT_DIR/" 2>/dev/null
+  sudo cp -r sei_aneel/config "$SCRIPT_DIR/" 2>/dev/null
 
   sudo apt-get update
   sudo apt-get install -y python3 python3-pip
@@ -164,7 +164,7 @@ update_pauta() {
   git clone "$REPO_URL" "$TMP_DIR" >/dev/null 2>&1
   sudo rm -rf "$PAUTA_DIR"
   sudo mkdir -p "$PAUTA_DIR" "$PAUTA_LOG_DIR"
-  sudo cp "$TMP_DIR/pauta_aneel/pauta_aneel.py" "$PAUTA_DIR/"
+  sudo cp "$TMP_DIR/sei_aneel/pauta_aneel/pauta_aneel.py" "$PAUTA_DIR/"
   sudo cp "$TMP_DIR/requirements.txt" "$PAUTA_DIR/"
   sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$PAUTA_DIR"
   sudo pip3 install --break-system-packages -r "$PAUTA_DIR/requirements.txt"
@@ -249,12 +249,12 @@ install_sorteio() {
   log "Iniciando instalação do Sorteio ANEEL"
   sudo rm -rf "$SORTEIO_DIR"
   sudo mkdir -p "$SORTEIO_LOG_DIR"
-  sudo cp sorteio_aneel/sorteio_aneel.py "$SORTEIO_DIR/"
+  sudo cp sei_aneel/sorteio_aneel/sorteio_aneel.py "$SORTEIO_DIR/"
   sudo cp requirements.txt "$SORTEIO_DIR/"
   sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$SORTEIO_DIR"
 
   sudo mkdir -p "$SCRIPT_DIR"
-  sudo cp -r config "$SCRIPT_DIR/" 2>/dev/null
+  sudo cp -r sei_aneel/config "$SCRIPT_DIR/" 2>/dev/null
 
   sudo apt-get update
   sudo apt-get install -y python3 python3-pip
@@ -282,7 +282,7 @@ update_sorteio() {
   git clone "$REPO_URL" "$TMP_DIR" >/dev/null 2>&1
   sudo rm -rf "$SORTEIO_DIR"
   sudo mkdir -p "$SORTEIO_DIR" "$SORTEIO_LOG_DIR"
-  sudo cp "$TMP_DIR/sorteio_aneel/sorteio_aneel.py" "$SORTEIO_DIR/"
+  sudo cp "$TMP_DIR/sei_aneel/sorteio_aneel/sorteio_aneel.py" "$SORTEIO_DIR/"
   sudo cp "$TMP_DIR/requirements.txt" "$SORTEIO_DIR/"
   sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$SORTEIO_DIR"
   sudo pip3 install --break-system-packages -r "$SORTEIO_DIR/requirements.txt"
