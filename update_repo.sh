@@ -92,7 +92,7 @@ sudo pip3 install --break-system-packages -r "$TARGET_DIR/requirements.txt"
 
 # instala/atualiza módulos adicionais
 sudo mkdir -p "$PAUTA_DIR" "$PAUTA_LOG_DIR"
-sudo cp "$LOCAL_REPO/pauta_aneel/pauta_aneel.py" "$PAUTA_DIR/"
+sudo cp "$LOCAL_REPO/sei_aneel/pauta_aneel/pauta_aneel.py" "$PAUTA_DIR/"
 sudo cp "$LOCAL_REPO/requirements.txt" "$PAUTA_DIR/"
 sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$PAUTA_DIR"
 sudo pip3 install --break-system-packages -r "$PAUTA_DIR/requirements.txt"
@@ -109,7 +109,7 @@ RUN
 sudo chmod +x "$PAUTA_DIR/run.sh"
 
 sudo mkdir -p "$SORTEIO_DIR" "$SORTEIO_LOG_DIR"
-sudo cp "$LOCAL_REPO/sorteio_aneel/sorteio_aneel.py" "$SORTEIO_DIR/"
+sudo cp "$LOCAL_REPO/sei_aneel/sorteio_aneel/sorteio_aneel.py" "$SORTEIO_DIR/"
 sudo cp "$LOCAL_REPO/requirements.txt" "$SORTEIO_DIR/"
 sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$SORTEIO_DIR"
 sudo pip3 install --break-system-packages -r "$SORTEIO_DIR/requirements.txt"
