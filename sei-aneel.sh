@@ -162,9 +162,10 @@ force_run_pauta() {
 }
 
 schedule_cron_pauta() {
+  read -p "Dias do mês [*]: " M; M=${M:-*}
   read -p "Dias da semana [*]: " D; D=${D:-*}
   read -p "Horas (ex: 7,19): " H
-  (crontab -l 2>/dev/null | grep -v 'pauta_aneel.py'; echo "0 $H * * $D $PAUTA_DIR/run.sh >> $PAUTA_LOG_DIR/cron.log 2>&1") | crontab -
+  (crontab -l 2>/dev/null | grep -v 'pauta_aneel.py'; echo "0 $H $M * $D $PAUTA_DIR/run.sh >> $PAUTA_LOG_DIR/cron.log 2>&1") | crontab -
   echo -e "${GREEN}Cron agendado.${NC}"
 }
 
@@ -350,9 +351,10 @@ force_run_sorteio() {
 }
 
 schedule_cron_sorteio() {
+  read -p "Dias do mês [*]: " M; M=${M:-*}
   read -p "Dias da semana [*]: " D; D=${D:-*}
   read -p "Horas (ex: 6,18): " H
-  (crontab -l 2>/dev/null | grep -v 'sorteio_aneel.py'; echo "0 $H * * $D $SORTEIO_DIR/run.sh >> $SORTEIO_LOG_DIR/cron.log 2>&1") | crontab -
+  (crontab -l 2>/dev/null | grep -v 'sorteio_aneel.py'; echo "0 $H $M * $D $SORTEIO_DIR/run.sh >> $SORTEIO_LOG_DIR/cron.log 2>&1") | crontab -
   echo -e "${GREEN}Cron agendado.${NC}"
 }
 
@@ -564,9 +566,10 @@ force_run() {
 }
 
 schedule_cron() {
+  read -p "Dias do mês [*]: " M; M=${M:-*}
   read -p "Dias da semana [*]: " D; D=${D:-*}
   read -p "Horas (ex: 5,13,16): " H
-  (crontab -l 2>/dev/null | grep -v 'sei-aneel.py'; echo "0 $H * * $D /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1") | crontab -
+  (crontab -l 2>/dev/null | grep -v 'sei-aneel.py'; echo "0 $H $M * $D /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1") | crontab -
   echo -e "${GREEN}Cron agendado.${NC}"
 }
 
