@@ -125,7 +125,7 @@ PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/pauta_aneel.py" "\$@"
 RUN
   chmod +x "$PAUTA_DIR/run.sh"
 
-  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py'; echo "0 7 * * * $PAUTA_DIR/run.sh >> $PAUTA_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
+  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py'; echo "0 7 * * * $PAUTA_DIR/run.sh $(date +%d/%m/%Y) >> $PAUTA_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
   echo -e "${GREEN}Instalação concluída.${NC}"
 }
 
@@ -174,7 +174,7 @@ schedule_cron_pauta() {
   read -p "Dias do mês [*]: " M; M=${M:-*}
   read -p "Meses [*]: " MO; MO=${MO:-*}
   read -p "Dias da semana [*]: " D; D=${D:-*}
-  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py'; echo "$MIN $H $M $MO $D $PAUTA_DIR/run.sh >> $PAUTA_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
+  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py'; echo "$MIN $H $M $MO $D $PAUTA_DIR/run.sh \$(date +\%d/\%m/\%Y) >> $PAUTA_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
   echo -e "${GREEN}Cron agendado.${NC}"
 }
 
@@ -365,7 +365,7 @@ schedule_cron_sorteio() {
   read -p "Dias do mês [*]: " M; M=${M:-*}
   read -p "Meses [*]: " MO; MO=${MO:-*}
   read -p "Dias da semana [*]: " D; D=${D:-*}
-  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'sorteio_aneel.py'; echo "$MIN $H $M $MO $D $SORTEIO_DIR/run.sh >> $SORTEIO_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
+  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'sorteio_aneel.py'; echo "$MIN $H $M $MO $D $SORTEIO_DIR/run.sh \$(date +\%d/\%m/\%Y) >> $SORTEIO_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
   echo -e "${GREEN}Cron agendado.${NC}"
 }
 
