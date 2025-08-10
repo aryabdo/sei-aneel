@@ -68,7 +68,7 @@ install_sei() {
 
   sudo rm -rf "$SCRIPT_DIR"
   sudo mkdir -p "$SCRIPT_DIR" "$LOG_DIR"
-  sudo cp -r sei_aneel/config "$SCRIPT_DIR/"
+  sudo cp -r sei_aneel "$SCRIPT_DIR/"
   sudo cp sei-aneel.py manage_processes.py backup_manager.py test_connectivity.py requirements.txt update_repo.sh "$SCRIPT_DIR/"
   sudo cp "$CRED" "$CONFIG_DIR/credentials.json"
   sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$SCRIPT_DIR"
@@ -135,7 +135,7 @@ install_pauta() {
   sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$PAUTA_DIR"
 
   sudo mkdir -p "$SCRIPT_DIR"
-  sudo cp -r sei_aneel/config "$SCRIPT_DIR/" 2>/dev/null
+  sudo cp -r sei_aneel "$SCRIPT_DIR/" 2>/dev/null
 
   sudo apt-get update
   sudo apt-get install -y python3 python3-pip
@@ -254,7 +254,7 @@ install_sorteio() {
   sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$SORTEIO_DIR"
 
   sudo mkdir -p "$SCRIPT_DIR"
-  sudo cp -r sei_aneel/config "$SCRIPT_DIR/" 2>/dev/null
+  sudo cp -r sei_aneel "$SCRIPT_DIR/" 2>/dev/null
 
   sudo apt-get update
   sudo apt-get install -y python3 python3-pip
