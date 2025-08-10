@@ -20,22 +20,10 @@ from colorama import Fore, Back, Style
 import threading
 import signal
 
-# Garante que o diretório raiz esteja no ``PYTHONPATH`` para importar
-# o módulo de configuração central.
-ROOT_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT_DIR))
-
-from config import DEFAULT_CONFIG_PATH, load_config
-# ``email_utils`` pode não estar no PYTHONPATH quando o script é
-# executado fora do repositório. Tentamos primeiro o import absoluto
-# e, em caso de falha, caímos para o import relativo quando o projeto
-# estiver instalado como pacote.
-try:  # pragma: no cover - lógica de fallback
-    from email_utils import format_html_email, attach_bytes, hash_content
-except ModuleNotFoundError:  # pragma: no cover - suporte a execução como pacote
-    from .email_utils import format_html_email, attach_bytes, hash_content  # type: ignore
-from ui import InteractiveUI
-from progress import ProgressTracker
+from sei_aneel.config import DEFAULT_CONFIG_PATH, load_config
+from sei_aneel.email_utils import format_html_email, attach_bytes, hash_content
+from sei_aneel.ui import InteractiveUI
+from sei_aneel.progress import ProgressTracker
 
 # Inicializa colorama para Windows
 colorama.init(autoreset=True)
