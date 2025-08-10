@@ -21,11 +21,11 @@ SCRIPT_LOG_FILE="$LOG_DIR/sei-aneel.log"
 
 log() {
   mkdir -p "$LOG_DIR"
-  echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$SCRIPT_LOG_FILE"
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - ${1:-}" >> "$SCRIPT_LOG_FILE"
 }
 
 show_header() {
-  local title="$1"
+  local title="${1:-}"
   clear
   echo -e "${BLUE}================================${NC}"
   echo -e "${BLUE}        SEI ANEEL - ${title}        ${NC}"
@@ -38,9 +38,10 @@ pause() {
 }
 
 # Usuário ativo no terminal (considera execução via sudo)
-ACTIVE_USER="${SUDO_USER:-$USER}"
+CURRENT_USER="${USER:-$(whoami)}"
+ACTIVE_USER="${SUDO_USER:-$CURRENT_USER}"
 CRONTAB_CMD="crontab"
-if [ "$USER" = "root" ]; then
+if [ "$CURRENT_USER" = "root" ]; then
   CRONTAB_CMD="crontab -u $ACTIVE_USER"
 fi
 
@@ -663,7 +664,7 @@ cron_menu() {
 }
 
 view_logs() {
-  local dir="$1"
+  local dir="${1:-$LOG_DIR}"
   if [ -d "$dir" ]; then
     ls -1 --color=always "$dir"
     read -p $'\e[33mArquivo de log para visualizar: \e[0m' LOGF
@@ -891,7 +892,7 @@ main_menu() {
     esac
   done
 }
-case "$1" in
+case "${1:-}" in
   menu|"")
     main_menu;;
   run)
