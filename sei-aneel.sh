@@ -31,6 +31,11 @@ show_header() {
   echo -e "${BLUE}================================${NC}"
 }
 
+# Pausa a execução até que o usuário pressione Enter
+pause() {
+  read -p $'\e[33mPressione Enter para continuar...\e[0m'
+}
+
 # Usuário ativo no terminal (considera execução via sudo)
 ACTIVE_USER="${SUDO_USER:-$USER}"
 CRONTAB_CMD="crontab"
@@ -215,6 +220,7 @@ clear_all_cron_pauta() {
 
 list_cron_pauta() {
   $CRONTAB_CMD -l 2>/dev/null | grep 'pauta_aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
+  pause
 }
 
 cron_menu_pauta() {
@@ -404,6 +410,7 @@ clear_all_cron_sorteio() {
 
 list_cron_sorteio() {
   $CRONTAB_CMD -l 2>/dev/null | grep 'sorteio_aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
+  pause
 }
 
 cron_menu_sorteio() {
@@ -537,10 +544,12 @@ with open(path) as f: data=json.load(f)
 for e in data.get('email',{}).get('recipients',[]):
     print(e)
 PY
+  pause
 }
 
 manage_emails() {
   while true; do
+    show_header "Gerenciar Emails"
     echo -e "${CYAN}1) Listar${NC}"
     echo -e "${CYAN}2) Adicionar${NC}"
     echo -e "${CYAN}3) Remover${NC}"
@@ -615,6 +624,7 @@ clear_all_cron() {
 
 list_cron() {
   $CRONTAB_CMD -l 2>/dev/null | grep 'sei-aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
+  pause
 }
 
 cron_menu_sei() {
@@ -678,6 +688,7 @@ list_terms() {
   else
     echo -e "${YELLOW}Arquivo de termos não encontrado.${NC}"
   fi
+  pause
 }
 
 add_term() {
