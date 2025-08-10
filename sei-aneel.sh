@@ -15,6 +15,13 @@ LOG_DIR="$SCRIPT_DIR/logs"
 REPO_URL="https://github.com/aryabdo/sei-aneel.git"
 UPDATE_SCRIPT="$SCRIPT_DIR/update_repo.sh"
 
+# Usuário ativo no terminal (considera execução via sudo)
+ACTIVE_USER="${SUDO_USER:-$USER}"
+CRONTAB_CMD="crontab"
+if [ "$USER" = "root" ]; then
+  CRONTAB_CMD="crontab -u $ACTIVE_USER"
+fi
+
 export SEI_ANEEL_CONFIG="$CONFIG_FILE"
 
 # Diretórios para módulos adicionais
@@ -40,7 +47,7 @@ install_sei() {
   sudo cp -r config "$SCRIPT_DIR/"
   sudo cp sei-aneel.py manage_processes.py backup_manager.py test_connectivity.py requirements.txt update_repo.sh "$SCRIPT_DIR/"
   sudo cp "$CRED" "$CONFIG_DIR/credentials.json"
-  sudo chown -R "$USER":"$USER" "$SCRIPT_DIR"
+  sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$SCRIPT_DIR"
 
   sudo apt-get update
   sudo apt-get install -y python3 python3-pip tesseract-ocr chromium-browser chromium-chromedriver
@@ -82,12 +89,12 @@ install_sei() {
 }
 CFG
 
-  (crontab -l 2>/dev/null | grep -v 'sei-aneel.py'; echo "0 5,13,16 * * * /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1") | crontab -
+  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'sei-aneel.py'; echo "0 5,13,16 * * * /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
   echo -e "${GREEN}Instalação concluída.${NC}"
 }
 
 remove_sei() {
-  crontab -l 2>/dev/null | grep -v 'sei-aneel.py' | crontab -
+  $CRONTAB_CMD -l 2>/dev/null | grep -v 'sei-aneel.py' | $CRONTAB_CMD -
   sudo rm -rf "$SCRIPT_DIR"
   echo -e "${GREEN}Remoção concluída.${NC}"
 }
@@ -97,7 +104,7 @@ install_pauta() {
   sudo mkdir -p "$PAUTA_LOG_DIR"
   sudo cp pauta_aneel/pauta_aneel.py "$PAUTA_DIR/"
   sudo cp requirements.txt "$PAUTA_DIR/"
-  sudo chown -R "$USER":"$USER" "$PAUTA_DIR"
+  sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$PAUTA_DIR"
 
   sudo mkdir -p "$SCRIPT_DIR"
   sudo cp -r config "$SCRIPT_DIR/" 2>/dev/null
@@ -118,7 +125,7 @@ PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/pauta_aneel.py" "\$@"
 RUN
   chmod +x "$PAUTA_DIR/run.sh"
 
-  (crontab -l 2>/dev/null | grep -v 'pauta_aneel.py'; echo "0 7 * * * $PAUTA_DIR/run.sh >> $PAUTA_LOG_DIR/cron.log 2>&1") | crontab -
+  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py'; echo "0 7 * * * $PAUTA_DIR/run.sh \"\$(date +\\%d/\\%m/\\%Y)\" >> $PAUTA_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
   echo -e "${GREEN}Instalação concluída.${NC}"
 }
 
@@ -129,7 +136,7 @@ update_pauta() {
   sudo mkdir -p "$PAUTA_DIR" "$PAUTA_LOG_DIR"
   sudo cp "$TMP_DIR/pauta_aneel/pauta_aneel.py" "$PAUTA_DIR/"
   sudo cp "$TMP_DIR/requirements.txt" "$PAUTA_DIR/"
-  sudo chown -R "$USER":"$USER" "$PAUTA_DIR"
+  sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$PAUTA_DIR"
   sudo pip3 install --break-system-packages -r "$PAUTA_DIR/requirements.txt"
 cat <<RUN > "$PAUTA_DIR/run.sh"
 #!/bin/bash
@@ -147,7 +154,7 @@ RUN
 }
 
 remove_pauta() {
-  crontab -l 2>/dev/null | grep -v 'pauta_aneel.py' | crontab -
+  $CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py' | $CRONTAB_CMD -
   sudo rm -rf "$PAUTA_DIR"
   echo -e "${GREEN}Remoção concluída.${NC}"
 }
@@ -167,22 +174,22 @@ schedule_cron_pauta() {
   read -p "Dias do mês [*]: " M; M=${M:-*}
   read -p "Meses [*]: " MO; MO=${MO:-*}
   read -p "Dias da semana [*]: " D; D=${D:-*}
-  (crontab -l 2>/dev/null | grep -v 'pauta_aneel.py'; echo "$MIN $H $M $MO $D $PAUTA_DIR/run.sh >> $PAUTA_LOG_DIR/cron.log 2>&1") | crontab -
+  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py'; echo "$MIN $H $M $MO $D $PAUTA_DIR/run.sh \"\$(date +\\%d/\\%m/\\%Y)\" >> $PAUTA_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
   echo -e "${GREEN}Cron agendado.${NC}"
 }
 
 remove_cron_pauta() {
-  crontab -l 2>/dev/null | grep -v 'pauta_aneel.py' | crontab -
+  $CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py' | $CRONTAB_CMD -
   echo -e "${GREEN}Cron removido.${NC}"
 }
 
 clear_all_cron_pauta() {
-  crontab -r
+  $CRONTAB_CMD -r
   echo -e "${GREEN}Todos agendamentos removidos.${NC}"
 }
 
 list_cron_pauta() {
-  crontab -l 2>/dev/null | grep 'pauta_aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
+  $CRONTAB_CMD -l 2>/dev/null | grep 'pauta_aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
 }
 
 cron_menu_pauta() {
@@ -219,7 +226,7 @@ install_sorteio() {
   sudo mkdir -p "$SORTEIO_LOG_DIR"
   sudo cp sorteio_aneel/sorteio_aneel.py "$SORTEIO_DIR/"
   sudo cp requirements.txt "$SORTEIO_DIR/"
-  sudo chown -R "$USER":"$USER" "$SORTEIO_DIR"
+  sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$SORTEIO_DIR"
 
   sudo mkdir -p "$SCRIPT_DIR"
   sudo cp -r config "$SCRIPT_DIR/" 2>/dev/null
@@ -240,7 +247,7 @@ PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/sorteio_aneel.py" "\$@"
 RUN
   chmod +x "$SORTEIO_DIR/run.sh"
 
-  (crontab -l 2>/dev/null | grep -v 'sorteio_aneel.py'; echo "0 6 * * * $SORTEIO_DIR/run.sh >> $SORTEIO_LOG_DIR/cron.log 2>&1") | crontab -
+  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'sorteio_aneel.py'; echo "0 6 * * * $SORTEIO_DIR/run.sh \"\$(date +\\%d/\\%m/\\%Y)\" >> $SORTEIO_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
   echo -e "${GREEN}Instalação concluída.${NC}"
 }
 
@@ -251,7 +258,7 @@ update_sorteio() {
   sudo mkdir -p "$SORTEIO_DIR" "$SORTEIO_LOG_DIR"
   sudo cp "$TMP_DIR/sorteio_aneel/sorteio_aneel.py" "$SORTEIO_DIR/"
   sudo cp "$TMP_DIR/requirements.txt" "$SORTEIO_DIR/"
-  sudo chown -R "$USER":"$USER" "$SORTEIO_DIR"
+  sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$SORTEIO_DIR"
   sudo pip3 install --break-system-packages -r "$SORTEIO_DIR/requirements.txt"
 cat <<RUN > "$SORTEIO_DIR/run.sh"
 #!/bin/bash
@@ -269,7 +276,7 @@ RUN
 }
 
 remove_sorteio() {
-  crontab -l 2>/dev/null | grep -v 'sorteio_aneel.py' | crontab -
+  $CRONTAB_CMD -l 2>/dev/null | grep -v 'sorteio_aneel.py' | $CRONTAB_CMD -
   sudo rm -rf "$SORTEIO_DIR"
   echo -e "${GREEN}Remoção concluída.${NC}"
 }
@@ -304,7 +311,7 @@ install_dependencies_only() {
   sudo pip3 install --break-system-packages -r requirements.txt
   sudo mkdir -p "$CONFIG_DIR" "$LOG_DIR" "$PAUTA_DIR" "$PAUTA_LOG_DIR" "$SORTEIO_DIR" "$SORTEIO_LOG_DIR"
   sudo touch "$CONFIG_FILE"
-  sudo chown -R "$USER":"$USER" "$SCRIPT_DIR" "$PAUTA_DIR" "$SORTEIO_DIR"
+  sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$SCRIPT_DIR" "$PAUTA_DIR" "$SORTEIO_DIR"
   echo -e "${GREEN}Dependências instaladas.${NC}"
 }
 
@@ -358,22 +365,22 @@ schedule_cron_sorteio() {
   read -p "Dias do mês [*]: " M; M=${M:-*}
   read -p "Meses [*]: " MO; MO=${MO:-*}
   read -p "Dias da semana [*]: " D; D=${D:-*}
-  (crontab -l 2>/dev/null | grep -v 'sorteio_aneel.py'; echo "$MIN $H $M $MO $D $SORTEIO_DIR/run.sh >> $SORTEIO_LOG_DIR/cron.log 2>&1") | crontab -
+  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'sorteio_aneel.py'; echo "$MIN $H $M $MO $D $SORTEIO_DIR/run.sh \"\$(date +\\%d/\\%m/\\%Y)\" >> $SORTEIO_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
   echo -e "${GREEN}Cron agendado.${NC}"
 }
 
 remove_cron_sorteio() {
-  crontab -l 2>/dev/null | grep -v 'sorteio_aneel.py' | crontab -
+  $CRONTAB_CMD -l 2>/dev/null | grep -v 'sorteio_aneel.py' | $CRONTAB_CMD -
   echo -e "${GREEN}Cron removido.${NC}"
 }
 
 clear_all_cron_sorteio() {
-  crontab -r
+  $CRONTAB_CMD -r
   echo -e "${GREEN}Todos agendamentos removidos.${NC}"
 }
 
 list_cron_sorteio() {
-  crontab -l 2>/dev/null | grep 'sorteio_aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
+  $CRONTAB_CMD -l 2>/dev/null | grep 'sorteio_aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
 }
 
 cron_menu_sorteio() {
@@ -575,22 +582,22 @@ schedule_cron() {
   read -p "Dias do mês [*]: " M; M=${M:-*}
   read -p "Meses [*]: " MO; MO=${MO:-*}
   read -p "Dias da semana [*]: " D; D=${D:-*}
-  (crontab -l 2>/dev/null | grep -v 'sei-aneel.py'; echo "$MIN $H $M $MO $D /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1") | crontab -
+  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'sei-aneel.py'; echo "$MIN $H $M $MO $D /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
   echo -e "${GREEN}Cron agendado.${NC}"
 }
 
 remove_cron() {
-  crontab -l 2>/dev/null | grep -v 'sei-aneel.py' | crontab -
+  $CRONTAB_CMD -l 2>/dev/null | grep -v 'sei-aneel.py' | $CRONTAB_CMD -
   echo -e "${GREEN}Cron removido.${NC}"
 }
 
 clear_all_cron() {
-  crontab -r
+  $CRONTAB_CMD -r
   echo -e "${GREEN}Todos agendamentos removidos.${NC}"
 }
 
 list_cron() {
-  crontab -l 2>/dev/null | grep 'sei-aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
+  $CRONTAB_CMD -l 2>/dev/null | grep 'sei-aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
 }
 
 cron_menu_sei() {

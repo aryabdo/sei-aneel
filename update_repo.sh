@@ -5,7 +5,16 @@ set -e
 
 REPO_URL="https://github.com/aryabdo/sei-aneel.git"
 TARGET_DIR="/opt/sei-aneel"
-LOCAL_REPO="$HOME/sei-aneel"
+
+# Determina o usuário ativo no terminal (considera execução via sudo)
+ACTIVE_USER="${SUDO_USER:-$USER}"
+ACTIVE_HOME=$(getent passwd "$ACTIVE_USER" | cut -d: -f6)
+CRONTAB_CMD="crontab"
+if [ "$USER" = "root" ]; then
+  CRONTAB_CMD="crontab -u $ACTIVE_USER"
+fi
+
+LOCAL_REPO="$ACTIVE_HOME/sei-aneel"
 CONFIG_DIR="$TARGET_DIR/config"
 CONFIG_FILE="$CONFIG_DIR/configs.json"
 
@@ -24,7 +33,7 @@ if [ -d "$CONFIG_DIR" ]; then
 fi
 
 # salva crontab existente, se houver
-crontab -l 2>/dev/null > "$CRON_BACKUP"
+$CRONTAB_CMD -l 2>/dev/null > "$CRON_BACKUP" || true
 
 # garante que não estamos dentro do diretório a ser removido
 cd /
@@ -84,7 +93,7 @@ sudo pip3 install --break-system-packages -r "$TARGET_DIR/requirements.txt"
 sudo mkdir -p "$PAUTA_DIR" "$PAUTA_LOG_DIR"
 sudo cp "$LOCAL_REPO/pauta_aneel/pauta_aneel.py" "$PAUTA_DIR/"
 sudo cp "$LOCAL_REPO/requirements.txt" "$PAUTA_DIR/"
-sudo chown -R "$USER":"$USER" "$PAUTA_DIR"
+sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$PAUTA_DIR"
 sudo pip3 install --break-system-packages -r "$PAUTA_DIR/requirements.txt"
 cat <<RUN | sudo tee "$PAUTA_DIR/run.sh" >/dev/null
 #!/bin/bash
@@ -101,7 +110,7 @@ sudo chmod +x "$PAUTA_DIR/run.sh"
 sudo mkdir -p "$SORTEIO_DIR" "$SORTEIO_LOG_DIR"
 sudo cp "$LOCAL_REPO/sorteio_aneel/sorteio_aneel.py" "$SORTEIO_DIR/"
 sudo cp "$LOCAL_REPO/requirements.txt" "$SORTEIO_DIR/"
-sudo chown -R "$USER":"$USER" "$SORTEIO_DIR"
+sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$SORTEIO_DIR"
 sudo pip3 install --break-system-packages -r "$SORTEIO_DIR/requirements.txt"
 cat <<RUN | sudo tee "$SORTEIO_DIR/run.sh" >/dev/null
 #!/bin/bash
@@ -123,11 +132,11 @@ fi
 
 # restaura crontab se existir
 if [ -s "$CRON_BACKUP" ]; then
-  crontab "$CRON_BACKUP"
+  $CRONTAB_CMD "$CRON_BACKUP"
 fi
 
 # ajusta permissões
-sudo chown -R "$USER":"$USER" "$TARGET_DIR" "$PAUTA_DIR" "$SORTEIO_DIR"
+sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$TARGET_DIR" "$PAUTA_DIR" "$SORTEIO_DIR"
 
 # limpa temporários
 rm -rf "$TEMP_DIR"
