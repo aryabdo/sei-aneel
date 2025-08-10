@@ -17,12 +17,16 @@ import subprocess
 import json
 from pathlib import Path
 import html
+import logging
+import shutil
 
 # Garante que o diretório raiz do projeto esteja no ``PYTHONPATH``.
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT_DIR))
 
 from config import load_config, load_search_terms
+from email_utils import format_html_email
+from log_utils import get_logger
 
 # Diretório de dados e arquivos de log
 DATA_DIR = os.environ.get("SORTEIO_DATA_DIR", os.path.join(os.path.expanduser("~"), ".sorteio_aneel"))
@@ -30,13 +34,10 @@ os.makedirs(DATA_DIR, exist_ok=True)
 LOG_FILE = os.environ.get("SORTEIO_LOG_FILE", os.path.join(DATA_DIR, "sorteio_aneel.log"))
 
 # === Registro de data/hora de execução no log ===
+logger = get_logger(__name__, log_file=LOG_FILE)
+
 def registrar_log(mensagem):
-    try:
-        with open(LOG_FILE, "a") as f:
-            for line in mensagem.strip().split("\n"):
-                f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {line}\n")
-    except Exception as e:
-        print(f"Erro ao registrar log: {e}")
+    logger.info(mensagem)
 
 registrar_log("Início da execução")
 # ================================================
@@ -75,28 +76,10 @@ def palavra_chave_no_texto(texto, palavras_chave):
     return False
 
 
-def format_html_email(title, content_html):
-    timestamp_str = datetime.now().strftime('%d/%m/%Y às %H:%M:%S')
-    return f"""<html>
-<head>
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 20px; }}
-        .header {{ color: #2c5aa0; border-bottom: 2px solid #2c5aa0; padding-bottom: 10px; }}
-        .section {{ margin: 20px 0; }}
-        .item {{ background-color: #e8f4f8; border-left: 4px solid #2c5aa0; padding: 10px; margin: 5px 0; }}
-        .timestamp {{ color: #888; font-size: 0.9em; }}
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h2>{title}</h2>
-        <div class="timestamp">Gerado em: {timestamp_str}</div>
-    </div>
-    {content_html}
-    <div class="section">
-        <p><small>Este é um email automático do sistema de monitoramento SEI ANEEL.</small></p>
-    </div>
-</body></html>"""
+def should_notify(items, erro=False):
+    return erro or not items
+
+
 
 def parse_date(date_str):
     try:
@@ -188,6 +171,9 @@ def extract_items_from_tr(url):
 
 def gerar_pdf_da_pagina(url, pdf_file):
     try:
+        if not shutil.which("wkhtmltopdf"):
+            registrar_log("wkhtmltopdf não encontrado")
+            return False
         headers = {'User-Agent': 'Mozilla/5.0'}
         html = requests.get(url, headers=headers, timeout=30).text
         with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp_html:
@@ -242,11 +228,11 @@ def send_email(subject, body_plain, body_html, pdf_path=None):
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(SMTP_USER, destinatarios, msg.as_string())
-        print("E-mail enviado com sucesso.")
+        logger.info("E-mail enviado com sucesso.")
         registrar_log(f"E-mail enviado para {EMAIL_TO}")
         registrar_log("Corpo do e-mail:\n" + body_plain)
     except Exception as e:
-        print(f"Erro ao enviar e-mail: {e}")
+        logger.error(f"Erro ao enviar e-mail: {e}")
         registrar_log(f"Falha ao enviar e-mail: {e}")
 
 def main():
@@ -263,7 +249,7 @@ def main():
     pdf_path = None
 
     if not url or not data_encontrada:
-        print("Nenhum link associado à data encontrada.")
+        logger.info("Nenhum link associado à data encontrada.")
         subject = f"{hoje_str} Busca Sorteio ANEEL - Nenhuma data encontrada"
         body = "Nao encontrado sorteio para data indicada! Atenciosamente, Ary Abdo!"
         content_html = (
@@ -273,9 +259,9 @@ def main():
             "</div>"
         )
         body_html = format_html_email("Sorteio ANEEL", content_html)
-        if execucao_manual:
+        if should_notify([], True):
             send_email(subject, body, body_html)
-        registrar_log("Nenhum link associado à data encontrada. Nenhum e-mail enviado.")
+        registrar_log("Nenhum link associado à data encontrada.")
         return
 
     items = extract_items_from_tr(url)
@@ -283,8 +269,9 @@ def main():
     items_anteriores = ultimo_resultado.get("items", [])
     data_encontrada_anterior = ultimo_resultado.get("data_encontrada")
 
-    if not execucao_manual and items == items_anteriores:
-        print("Nenhuma atualização nos itens encontrados.")
+    notificar = should_notify(items)
+    if not execucao_manual and not notificar and items == items_anteriores:
+        logger.info("Nenhuma atualização nos itens encontrados.")
         registrar_log("Nenhuma atualização nos itens encontrados.")
         return
 
@@ -293,7 +280,7 @@ def main():
             pdf_path = tmp_pdf.name
         sucesso_pdf = gerar_pdf_da_pagina(url, pdf_path)
         if not sucesso_pdf:
-            print("PDF não gerado, mas tentando anexar se existir.")
+            logger.warning("PDF não gerado, mas tentando anexar se existir.")
 
     subject = f"{hoje_str} Busca Sorteio ANEEL - {data_encontrada} - {link_text}"
     if items:
@@ -323,9 +310,10 @@ def main():
         body_html = format_html_email("Sorteio ANEEL", content_html)
         registrar_log("Nenhum processo relevante encontrado.")
 
-    print("Itens relevantes encontrados:" if items else "Nenhum item relevante encontrado.")
-    print(body)
-    send_email(subject, body, body_html, pdf_path)
+    logger.info("Itens relevantes encontrados:" if items else "Nenhum item relevante encontrado.")
+    logger.info(body)
+    if execucao_manual or notificar or items != items_anteriores:
+        send_email(subject, body, body_html, pdf_path)
     if not execucao_manual:
         salvar_ultimo_resultado(data_encontrada, items)
     if pdf_path and os.path.exists(pdf_path):

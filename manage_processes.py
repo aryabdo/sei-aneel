@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Gerencia a planilha de processos no Google Sheets."""
 
+import argparse
 import json
 import re
 import sys
@@ -17,14 +18,18 @@ from config import load_config
 
 
 def connect_sheet(conf):
-    creds_file = conf['google_drive']['credentials_file']
-    sheet_name = conf['google_drive']['sheet_name']
-    worksheet_name = conf['google_drive']['worksheet_name']
-    scope = ['https://spreadsheets.google.com/feeds',
-             'https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name(creds_file, scope)
-    client = gspread.authorize(creds)
-    return client.open(sheet_name).worksheet(worksheet_name)
+    try:
+        creds_file = conf['google_drive']['credentials_file']
+        sheet_name = conf['google_drive']['sheet_name']
+        worksheet_name = conf['google_drive']['worksheet_name']
+        scope = ['https://spreadsheets.google.com/feeds',
+                 'https://www.googleapis.com/auth/drive']
+        creds = ServiceAccountCredentials.from_json_keyfile_name(creds_file, scope)
+        client = gspread.authorize(creds)
+        return client.open(sheet_name).worksheet(worksheet_name)
+    except Exception as e:
+        print(f"Erro ao conectar à planilha: {e}")
+        raise
 
 
 def normalize(num: str) -> str:
@@ -59,26 +64,24 @@ def update_process(sheet, old, new):
 
 
 def main():
-    if len(sys.argv) < 3:
-        print('Uso: manage_processes.py [add|remove|update] <número> [novo número]')
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='Gerencia a planilha de processos no Google Sheets.')
+    parser.add_argument('action', choices=['add', 'remove', 'update'], help='Ação a executar')
+    parser.add_argument('numero', help='Número do processo')
+    parser.add_argument('novo_numero', nargs='?', help='Novo número para atualização')
+    args = parser.parse_args()
 
-    action = sys.argv[1]
     conf = load_config()
     sheet = connect_sheet(conf)
 
-    if action == 'add':
-        add_process(sheet, sys.argv[2])
-    elif action == 'remove':
-        remove_process(sheet, sys.argv[2])
-    elif action == 'update':
-        if len(sys.argv) < 4:
+    if args.action == 'add':
+        add_process(sheet, args.numero)
+    elif args.action == 'remove':
+        remove_process(sheet, args.numero)
+    else:  # update
+        if not args.novo_numero:
             print('Uso: manage_processes.py update <número_antigo> <número_novo>')
             sys.exit(1)
-        update_process(sheet, sys.argv[2], sys.argv[3])
-    else:
-        print('Ação inválida. Use add, remove ou update.')
-        sys.exit(1)
+        update_process(sheet, args.numero, args.novo_numero)
 
 
 if __name__ == '__main__':

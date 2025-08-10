@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Verifica a conectividade com serviços externos usados pelo projeto."""
 
+import argparse
 import json
 import smtplib
 import sys
@@ -56,10 +57,19 @@ def test_sheet(conf):
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Verifica a conectividade com serviços externos usados pelo projeto.')
+    parser.add_argument('--skip-smtp', action='store_true', help='Ignora teste de SMTP')
+    parser.add_argument('--skip-sheet', action='store_true', help='Ignora teste do Google Sheets')
+    parser.add_argument('--skip-captcha', action='store_true', help='Ignora teste do 2captcha')
+    args = parser.parse_args()
+
     conf = load_config()
-    test_twocaptcha(conf.get('twocaptcha', {}).get('api_key', ''))
-    test_smtp(conf.get('smtp', {}))
-    test_sheet(conf)
+    if not args.skip_captcha:
+        test_twocaptcha(conf.get('twocaptcha', {}).get('api_key', ''))
+    if not args.skip_smtp:
+        test_smtp(conf.get('smtp', {}))
+    if not args.skip_sheet:
+        test_sheet(conf)
 
 
 if __name__ == '__main__':

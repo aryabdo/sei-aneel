@@ -2,6 +2,7 @@ gspread
 oauth2client
 selenium
 python-2captcha
+2captcha-python
 pillow
 pytesseract
 colorama

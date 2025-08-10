@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Cores para saída colorida
 RED='\e[31m'
 GREEN='\e[32m'
@@ -158,6 +159,7 @@ RUN
 
 update_pauta() {
   TMP_DIR=$(mktemp -d)
+  trap 'rm -rf "$TMP_DIR"' RETURN
   git clone "$REPO_URL" "$TMP_DIR" >/dev/null 2>&1
   sudo rm -rf "$PAUTA_DIR"
   sudo mkdir -p "$PAUTA_DIR" "$PAUTA_LOG_DIR"
@@ -165,7 +167,7 @@ update_pauta() {
   sudo cp "$TMP_DIR/requirements.txt" "$PAUTA_DIR/"
   sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$PAUTA_DIR"
   sudo pip3 install --break-system-packages -r "$PAUTA_DIR/requirements.txt"
-cat <<RUN > "$PAUTA_DIR/run.sh"
+  cat <<RUN > "$PAUTA_DIR/run.sh"
 #!/bin/bash
 DIR="\$(dirname "\$0")"
 cd "\$DIR"
@@ -176,7 +178,6 @@ XDG_RUNTIME_DIR=\${XDG_RUNTIME_DIR:-/tmp}
 PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/pauta_aneel.py" "\$@"
 RUN
   chmod +x "$PAUTA_DIR/run.sh"
-  rm -rf "$TMP_DIR"
   echo -e "${GREEN}Atualização concluída.${NC}"
 }
 

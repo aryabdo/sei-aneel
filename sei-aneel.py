@@ -26,18 +26,14 @@ ROOT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT_DIR))
 
 from config import DEFAULT_CONFIG_PATH, load_config
+from email_utils import format_html_email, attach_bytes, hash_content
+from ui import InteractiveUI
+from progress import ProgressTracker
 
 # Inicializa colorama para Windows
 colorama.init(autoreset=True)
 
-# Instala 2captcha-python forçadamente em ambientes restritos.
-try:
-    import twocaptcha
-except ImportError:
-    subprocess.check_call([
-        sys.executable, "-m", "pip", "install", "--upgrade", "2captcha-python", "--break-system-packages"
-    ])
-    import twocaptcha
+import twocaptcha
 
 import time
 import re
@@ -64,123 +60,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
-
-class InteractiveUI:
-    """Interface interativa para o usuário"""
-    
-    def __init__(self):
-        self.running = True
-        self.paused = False
-        self.step_mode = False
-        
-    def print_header(self):
-        """Exibe cabeçalho colorido"""
-        print(f"\n{Fore.CYAN}{'='*70}")
-        print(f"{Fore.CYAN}║{' '*20}{Fore.YELLOW}SEI ANEEL - Sistema de Monitoramento{' '*19}{Fore.CYAN}║")
-        print(f"{Fore.CYAN}║{' '*25}{Fore.GREEN}Versão 1.1.0 - Interativo{' '*24}{Fore.CYAN}║")
-        print(f"{Fore.CYAN}{'='*70}")
-        
-    def print_menu(self):
-        """Exibe menu de opções"""
-        print(f"\n{Fore.GREEN}📋 Opções disponíveis durante execução:")
-        print(f"{Fore.YELLOW}  [CTRL+C] {Fore.WHITE}- Pausar/Retomar execução")
-        print(f"{Fore.YELLOW}  [s]      {Fore.WHITE}- Alternar modo passo-a-passo")
-        print(f"{Fore.YELLOW}  [q]      {Fore.WHITE}- Parar execução graciosamente")
-        print(f"{Fore.YELLOW}  [i]      {Fore.WHITE}- Mostrar informações do processo atual")
-        print(f"{Fore.YELLOW}  [h]      {Fore.WHITE}- Mostrar esta ajuda")
-        
-    def print_status(self, current: int, total: int, processo: str, status: str = ""):
-        """Exibe status atual colorido"""
-        percentage = (current / total) * 100 if total > 0 else 0
-        bar_length = 30
-        filled_length = int(bar_length * current // total) if total > 0 else 0
-        bar = '█' * filled_length + '-' * (bar_length - filled_length)
-        
-        status_color = Fore.GREEN if status == "sucesso" else Fore.RED if status == "falha" else Fore.YELLOW
-        
-        print(f"\r{Fore.CYAN}Progresso: {Fore.WHITE}[{Fore.GREEN}{bar}{Fore.WHITE}] {percentage:.1f}% "
-              f"{Fore.CYAN}({current}/{total}) {Fore.WHITE}| {Fore.YELLOW}Processo: {processo[:20]}{'...' if len(processo) > 20 else ''} "
-              f"{status_color}{status}", end="", flush=True)
-        
-    def wait_for_input(self):
-        """Aguarda entrada do usuário em modo passo-a-passo"""
-        if self.step_mode:
-            input(f"\n{Fore.YELLOW}Pressione ENTER para continuar para o próximo processo...")
-            
-    def handle_pause(self):
-        """Gerencia pausa da execução"""
-        if self.paused:
-            print(f"\n\n{Fore.YELLOW}⏸️  Execução pausada. Pressione ENTER para continuar...")
-            input()
-            self.paused = False
-            print(f"{Fore.GREEN}▶️  Execução retomada.")
-
-class ProgressTracker:
-    """Rastreador de progresso avançado"""
-    
-    def __init__(self):
-        self.start_time = None
-        self.processed = 0
-        self.total = 0
-        self.successes = 0
-        self.failures = 0
-        self.updates = 0
-        self.inserts = 0
-        
-    def start(self, total_processes: int):
-        """Inicia rastreamento"""
-        self.start_time = datetime.now()
-        self.total = total_processes
-        
-    def update_stats(self, status: str):
-        """Atualiza estatísticas"""
-        self.processed += 1
-        if status == "atualizado":
-            self.successes += 1
-            self.updates += 1
-        elif status == "inserido":
-            self.successes += 1
-            self.inserts += 1
-        elif status == "processado":
-            self.successes += 1
-        else:
-            self.failures += 1
-            
-    def get_eta(self) -> str:
-        """Calcula tempo estimado para conclusão"""
-        if not self.start_time or self.processed == 0:
-            return "Calculando..."
-            
-        elapsed = datetime.now() - self.start_time
-        rate = self.processed / elapsed.total_seconds()
-        remaining = (self.total - self.processed) / rate if rate > 0 else 0
-        
-        eta = datetime.now() + timedelta(seconds=remaining)
-        return eta.strftime("%H:%M:%S")
-        
-    def print_summary(self):
-        """Exibe resumo final"""
-        if not self.start_time:
-            return
-            
-        elapsed = datetime.now() - self.start_time
-        
-        print(f"\n\n{Fore.CYAN}{'='*60}")
-        print(f"{Fore.CYAN}║{' '*20}{Fore.YELLOW}RESUMO DA EXECUÇÃO{' '*21}{Fore.CYAN}║")
-        print(f"{Fore.CYAN}{'='*60}")
-        print(f"{Fore.WHITE}⏱️  Tempo total: {Fore.GREEN}{elapsed}")
-        print(f"{Fore.WHITE}📊 Processos: {Fore.CYAN}{self.processed}/{self.total}")
-        print(f"{Fore.WHITE}✅ Sucessos: {Fore.GREEN}{self.successes}")
-        print(f"{Fore.WHITE}❌ Falhas: {Fore.RED}{self.failures}")
-        print(f"{Fore.WHITE}🔄 Atualizações: {Fore.YELLOW}{self.updates}")
-        print(f"{Fore.WHITE}📝 Inserções: {Fore.BLUE}{self.inserts}")
-        
-        if self.processed > 0:
-            success_rate = (self.successes / self.processed) * 100
-            rate_color = Fore.GREEN if success_rate >= 80 else Fore.YELLOW if success_rate >= 60 else Fore.RED
-            print(f"{Fore.WHITE}📈 Taxa de sucesso: {rate_color}{success_rate:.1f}%")
-            
-        print(f"{Fore.CYAN}{'='*60}")
 
 class KeyboardHandler:
     """Gerenciador de entradas de teclado"""
@@ -1465,16 +1344,24 @@ def verificar_e_enviar_notificacoes(planilha_handler: PlanilhaHandler,
         except Exception as e:
             logger.error(f"Erro ao salvar snapshot: {e}")
         
-        # Envia email se houver mudanças ou falhas
-        if mudancas_detectadas or processos_falha:
-            enviar_notificacao_email(mudancas_detectadas, processos_falha, config, logger)
+        hash_path = Path("/opt/sei-aneel/data/last_hash.txt")
+        current_hash = hash_content([json.dumps(mudancas_detectadas, sort_keys=True)])
+        last_hash = hash_path.read_text().strip() if hash_path.exists() else ""
+        if current_hash != last_hash or processos_falha:
+            enviar_notificacao_email(planilha_handler, mudancas_detectadas, processos_falha, config, logger)
+            try:
+                hash_path.parent.mkdir(parents=True, exist_ok=True)
+                hash_path.write_text(current_hash)
+            except Exception as e:
+                logger.warning(f"Não foi possível salvar hash: {e}")
         else:
-            logger.info("Nenhuma mudança detectada, email não enviado")
+            logger.info("Resultados sem mudanças, email não enviado")
             
     except Exception as e:
         logger.error(f"Erro na verificação de mudanças: {e}")
 
-def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str], 
+def enviar_notificacao_email(planilha_handler: PlanilhaHandler,
+                           mudancas: List[Dict], processos_falha: List[str],
                            config: ConfigManager, logger):
     """Envia email de notificação sobre mudanças detectadas"""
     try:
@@ -1636,6 +1523,13 @@ def enviar_notificacao_email(mudancas: List[Dict], processos_falha: List[str],
         msg.attach(parte_texto)
         parte_html = MIMEText(corpo_html, 'html', 'utf-8')
         msg.attach(parte_html)
+
+        try:
+            xlsx_data = planilha_handler.sheet.spreadsheet.export('xlsx')
+            attach_bytes(msg, xlsx_data, 'processos.xlsx',
+                         'application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        except Exception as e:
+            logger.warning(f"Falha ao exportar planilha: {e}")
 
         # Envia email
         server = smtplib.SMTP(smtp_config['server'], smtp_config.get('port', 587))
