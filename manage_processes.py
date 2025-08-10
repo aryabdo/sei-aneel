@@ -4,17 +4,12 @@
 import argparse
 import json
 import re
-import sys
 from pathlib import Path
-
-# Garante que o diretório raiz do projeto esteja no ``PYTHONPATH``.
-ROOT_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT_DIR))
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-from config import load_config
+from sei_aneel.config import load_config
 
 
 def connect_sheet(conf):

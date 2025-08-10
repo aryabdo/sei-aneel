@@ -4,20 +4,12 @@
 import argparse
 import json
 import smtplib
-import sys
 import urllib.request
-from pathlib import Path
-
-# Garante que o diretório raiz do projeto esteja no ``PYTHONPATH``
-# para permitir a importação do módulo de configuração central
-# quando o script for executado a partir de locais diferentes.
-ROOT_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT_DIR))
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-from config import load_config
+from sei_aneel.config import load_config
 
 
 def check_twocaptcha(api_key):

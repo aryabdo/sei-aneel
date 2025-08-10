@@ -2,19 +2,13 @@
 
 import argparse
 import os
-import sys
 import zipfile
 from datetime import datetime
 from pathlib import Path
 import logging
 
-# Assegura acesso ao módulo de configuração central independentemente do
-# diretório de execução do script.
-ROOT_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT_DIR))
-
-from config import DEFAULT_CONFIG_PATH, load_config
-from log_utils import get_logger
+from sei_aneel.config import DEFAULT_CONFIG_PATH, load_config
+from sei_aneel.log_utils import get_logger
 
 logger = get_logger(__name__)
 
