@@ -26,7 +26,13 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT_DIR))
 
 from config import load_config, load_search_terms
-from email_utils import format_html_email
+# ``email_utils`` pode não estar disponível quando o script é chamado
+# diretamente fora do repositório. Tentamos o import absoluto e, se
+# necessário, o relativo para suportar execução como pacote.
+try:  # pragma: no cover - lógica de fallback
+    from email_utils import format_html_email
+except ModuleNotFoundError:  # pragma: no cover - suporte a pacote
+    from ..email_utils import format_html_email  # type: ignore
 from log_utils import get_logger
 
 # Diretório de dados e arquivos de log
