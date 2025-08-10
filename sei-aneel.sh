@@ -773,6 +773,27 @@ connection_config_menu() {
   done
 }
 
+show_status() {
+  echo -e "${CYAN}Diretório do script:${NC} $SCRIPT_DIR"
+  if [ -f "$CONFIG_FILE" ]; then
+    echo -e "${CYAN}Arquivo de configuração:${NC} $CONFIG_FILE"
+  else
+    echo -e "${YELLOW}Arquivo de configuração não encontrado.${NC}"
+  fi
+  if [ -f "$TERMS_FILE" ]; then
+    local count
+    count=$(wc -l < "$TERMS_FILE")
+    echo -e "${CYAN}Termos de busca:${NC} $count"
+  else
+    echo -e "${CYAN}Termos de busca:${NC} 0"
+  fi
+  if $CRONTAB_CMD -l 2>/dev/null | grep -q 'sei-aneel.py'; then
+    echo -e "${CYAN}Cron SEI ANEEL:${NC} ativo"
+  else
+    echo -e "${YELLOW}Cron SEI ANEEL:${NC} inativo"
+  fi
+}
+
 config_menu() {
   while true; do
     show_header "Configurações"
@@ -869,5 +890,23 @@ main_menu() {
     esac
   done
 }
-
-main_menu
+case "$1" in
+  menu|"")
+    main_menu;;
+  run)
+    log "Execução manual via CLI"
+    python3 "$SCRIPT_DIR/sei-aneel.py";;
+  config)
+    config_menu;;
+  test)
+    test_connectivity;;
+  backup)
+    backup_menu;;
+  logs)
+    view_logs "$LOG_DIR";;
+  status)
+    show_status;;
+  *)
+    echo "Uso: $0 {menu|run|config|test|backup|logs|status}";
+    exit 1;;
+esac
