@@ -108,8 +108,11 @@ def load_config(path: str | Path | None = None) -> Dict[str, Any]:
     cfg_path = Path(path) if path else DEFAULT_CONFIG_PATH
     ensure_config_file(cfg_path)
 
-    with open(cfg_path, "r", encoding="utf-8") as f:
-        config = json.load(f)
+    try:
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+    except json.JSONDecodeError:
+        config = {}
 
     # Apply defaults so callers can rely on the presence of expected keys.
     smtp = config.setdefault("smtp", {})

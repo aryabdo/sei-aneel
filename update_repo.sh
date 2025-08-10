@@ -1,7 +1,7 @@
 #!/bin/bash
 # Atualiza o projeto SEI ANEEL preservando as configuracoes de conexao,
 # termos de pesquisa e agendamentos do cron.
-set -e
+set -euo pipefail
 
 REPO_URL="https://github.com/aryabdo/sei-aneel.git"
 TARGET_DIR="/opt/sei-aneel"
@@ -26,6 +26,7 @@ SORTEIO_LOG_DIR="$SORTEIO_DIR/logs"
 # cria diretório temporário para backup
 TEMP_DIR=$(mktemp -d)
 CRON_BACKUP="$TEMP_DIR/cron.bak"
+trap 'rm -rf "$TEMP_DIR"' EXIT
 
 # copia configuracoes existentes, se houver
 if [ -d "$CONFIG_DIR" ]; then
@@ -137,8 +138,5 @@ fi
 
 # ajusta permissões
 sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$TARGET_DIR" "$PAUTA_DIR" "$SORTEIO_DIR"
-
-# limpa temporários
-rm -rf "$TEMP_DIR"
 
 echo "Atualização global concluída."
