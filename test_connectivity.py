@@ -20,7 +20,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 from config import load_config
 
 
-def test_twocaptcha(api_key):
+def check_twocaptcha(api_key):
+    """Testa a conectividade com o serviço 2captcha."""
     try:
         url = f'https://2captcha.com/res.php?key={api_key}&action=getbalance'
         with urllib.request.urlopen(url, timeout=10) as resp:
@@ -30,7 +31,8 @@ def test_twocaptcha(api_key):
         print(f'2captcha: {e}')
 
 
-def test_smtp(conf):
+def check_smtp(conf):
+    """Testa a conectividade com o servidor SMTP configurado."""
     try:
         server = smtplib.SMTP(conf['server'], conf.get('port', 587), timeout=10)
         if conf.get('starttls', False):
@@ -42,7 +44,8 @@ def test_smtp(conf):
         print(f'SMTP: {e}')
 
 
-def test_sheet(conf):
+def check_sheet(conf):
+    """Testa a conectividade com a planilha do Google configurada."""
     try:
         scope = ['https://spreadsheets.google.com/feeds',
                  'https://www.googleapis.com/auth/drive']
@@ -65,11 +68,11 @@ def main():
 
     conf = load_config()
     if not args.skip_captcha:
-        test_twocaptcha(conf.get('twocaptcha', {}).get('api_key', ''))
+        check_twocaptcha(conf.get('twocaptcha', {}).get('api_key', ''))
     if not args.skip_smtp:
-        test_smtp(conf.get('smtp', {}))
+        check_smtp(conf.get('smtp', {}))
     if not args.skip_sheet:
-        test_sheet(conf)
+        check_sheet(conf)
 
 
 if __name__ == '__main__':
