@@ -220,7 +220,6 @@ clear_all_cron_pauta() {
 
 list_cron_pauta() {
   $CRONTAB_CMD -l 2>/dev/null | grep 'pauta_aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
-  pause
 }
 
 cron_menu_pauta() {
@@ -233,12 +232,12 @@ cron_menu_pauta() {
     echo -e "${CYAN}5) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) schedule_cron_pauta ;;
-      2) remove_cron_pauta ;;
-      3) list_cron_pauta ;;
-      4) clear_all_cron_pauta ;;
+      1) schedule_cron_pauta; pause ;;
+      2) remove_cron_pauta; pause ;;
+      3) list_cron_pauta; pause ;;
+      4) clear_all_cron_pauta; pause ;;
       5) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -323,11 +322,11 @@ select_install_menu() {
     echo -e "${CYAN}4) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) install_sei ;;
-      2) install_pauta ;;
-      3) install_sorteio ;;
+      1) install_sei; pause ;;
+      2) install_pauta; pause ;;
+      3) install_sorteio; pause ;;
       4) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -367,13 +366,13 @@ installation_menu() {
     echo -e "${CYAN}6) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) install_all_modules ;;
-      2) select_install_menu ;;
-      3) install_dependencies_only ;;
-      4) update_global ;;
-      5) remove_all_modules ;;
+      1) install_all_modules; pause ;;
+      2) select_install_menu; pause ;;
+      3) install_dependencies_only; pause ;;
+      4) update_global; pause ;;
+      5) remove_all_modules; pause ;;
       6) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -410,7 +409,6 @@ clear_all_cron_sorteio() {
 
 list_cron_sorteio() {
   $CRONTAB_CMD -l 2>/dev/null | grep 'sorteio_aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
-  pause
 }
 
 cron_menu_sorteio() {
@@ -423,12 +421,12 @@ cron_menu_sorteio() {
     echo -e "${CYAN}5) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) schedule_cron_sorteio ;;
-      2) remove_cron_sorteio ;;
-      3) list_cron_sorteio ;;
-      4) clear_all_cron_sorteio ;;
+      1) schedule_cron_sorteio; pause ;;
+      2) remove_cron_sorteio; pause ;;
+      3) list_cron_sorteio; pause ;;
+      4) clear_all_cron_sorteio; pause ;;
       5) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -544,7 +542,6 @@ with open(path) as f: data=json.load(f)
 for e in data.get('email',{}).get('recipients',[]):
     print(e)
 PY
-  pause
 }
 
 manage_emails() {
@@ -556,11 +553,11 @@ manage_emails() {
     echo -e "${CYAN}4) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) list_emails ;;
-      2) add_email ;;
-      3) remove_email ;;
+      1) list_emails; pause ;;
+      2) add_email; pause ;;
+      3) remove_email; pause ;;
       4) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -574,11 +571,11 @@ manage_processes_menu() {
     echo -e "${CYAN}4) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) read -p "Número: " N; python3 "$SCRIPT_DIR/manage_processes.py" add "$N" ;;
-      2) read -p "Número: " N; python3 "$SCRIPT_DIR/manage_processes.py" remove "$N" ;;
-      3) read -p "Número antigo: " O; read -p "Número novo: " N; python3 "$SCRIPT_DIR/manage_processes.py" update "$O" "$N" ;;
+      1) read -p "Número: " N; python3 "$SCRIPT_DIR/manage_processes.py" add "$N"; pause ;;
+      2) read -p "Número: " N; python3 "$SCRIPT_DIR/manage_processes.py" remove "$N"; pause ;;
+      3) read -p "Número antigo: " O; read -p "Número novo: " N; python3 "$SCRIPT_DIR/manage_processes.py" update "$O" "$N"; pause ;;
       4) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -593,11 +590,11 @@ force_run() {
     read -p $'\e[33mOpção: \e[0m' op
     log_file="$LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
     case $op in
-      1) log "Execução manual: todos os processos"; python3 "$SCRIPT_DIR/sei-aneel.py" | tee "$log_file" ;;
-      2) read -p $'\e[33mNúmero(s) de processo (separados por espaço): \e[0m' PROC; log "Execução manual: processos $PROC"; python3 "$SCRIPT_DIR/sei-aneel.py" --processo $PROC | tee "$log_file" ;;
-      3) log "Execução manual: envio de tabela por email"; python3 "$SCRIPT_DIR/sei-aneel.py" --email-tabela | tee "$log_file" ;;
+      1) log "Execução manual: todos os processos"; python3 "$SCRIPT_DIR/sei-aneel.py" | tee "$log_file"; pause ;;
+      2) read -p $'\e[33mNúmero(s) de processo (separados por espaço): \e[0m' PROC; log "Execução manual: processos $PROC"; python3 "$SCRIPT_DIR/sei-aneel.py" --processo $PROC | tee "$log_file"; pause ;;
+      3) log "Execução manual: envio de tabela por email"; python3 "$SCRIPT_DIR/sei-aneel.py" --email-tabela | tee "$log_file"; pause ;;
       4) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -624,7 +621,6 @@ clear_all_cron() {
 
 list_cron() {
   $CRONTAB_CMD -l 2>/dev/null | grep 'sei-aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
-  pause
 }
 
 cron_menu_sei() {
@@ -637,12 +633,12 @@ cron_menu_sei() {
     echo -e "${CYAN}5) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) schedule_cron ;;
-      2) remove_cron ;;
-      3) list_cron ;;
-      4) clear_all_cron ;;
+      1) schedule_cron; pause ;;
+      2) remove_cron; pause ;;
+      3) list_cron; pause ;;
+      4) clear_all_cron; pause ;;
       5) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -656,11 +652,11 @@ cron_menu() {
     echo -e "${CYAN}4) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) cron_menu_sei ;;
-      2) cron_menu_pauta ;;
-      3) cron_menu_sorteio ;;
+      1) cron_menu_sei; pause ;;
+      2) cron_menu_pauta; pause ;;
+      3) cron_menu_sorteio; pause ;;
       4) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -688,7 +684,6 @@ list_terms() {
   else
     echo -e "${YELLOW}Arquivo de termos não encontrado.${NC}"
   fi
-  pause
 }
 
 add_term() {
@@ -739,11 +734,11 @@ search_terms_menu() {
     echo -e "${CYAN}4) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) list_terms ;;
-      2) add_term ;;
-      3) remove_term ;;
+      1) list_terms; pause ;;
+      2) add_term; pause ;;
+      3) remove_term; pause ;;
       4) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -756,10 +751,10 @@ backup_menu() {
     echo -e "${CYAN}3) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) python3 "$SCRIPT_DIR/backup_manager.py" local ;;
-      2) python3 "$SCRIPT_DIR/backup_manager.py" gdrive ;;
+      1) python3 "$SCRIPT_DIR/backup_manager.py" local; pause ;;
+      2) python3 "$SCRIPT_DIR/backup_manager.py" gdrive; pause ;;
       3) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -771,9 +766,9 @@ connection_config_menu() {
     echo -e "${CYAN}2) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) configure_sei ;;
+      1) configure_sei; pause ;;
       2) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -789,13 +784,13 @@ config_menu() {
     echo -e "${CYAN}6) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) search_terms_menu ;;
-      2) connection_config_menu ;;
-      3) test_connectivity ;;
-      4) cron_menu ;;
-      5) backup_menu ;;
+      1) search_terms_menu; pause ;;
+      2) connection_config_menu; pause ;;
+      3) test_connectivity; pause ;;
+      4) cron_menu; pause ;;
+      5) backup_menu; pause ;;
       6) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -809,11 +804,11 @@ sei_menu() {
     echo -e "${CYAN}4) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
-      1) manage_processes_menu ;;
-      2) force_run ;;
-      3) view_logs "$LOG_DIR" ;;
+      1) manage_processes_menu; pause ;;
+      2) force_run; pause ;;
+      3) view_logs "$LOG_DIR"; pause ;;
       4) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -827,10 +822,10 @@ pauta_menu() {
     echo -e "${CYAN}3) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
-      1) force_run_pauta ;;
-      2) view_logs "$PAUTA_LOG_DIR" ;;
+      1) force_run_pauta; pause ;;
+      2) view_logs "$PAUTA_LOG_DIR"; pause ;;
       3) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -844,10 +839,10 @@ sorteio_menu() {
     echo -e "${CYAN}3) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
-      1) force_run_sorteio ;;
-      2) view_logs "$SORTEIO_LOG_DIR" ;;
+      1) force_run_sorteio; pause ;;
+      2) view_logs "$SORTEIO_LOG_DIR"; pause ;;
       3) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
@@ -864,13 +859,13 @@ main_menu() {
     echo -e "${CYAN}6) Sair${NC}"
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
-      1) installation_menu ;;
-      2) sei_menu ;;
-      3) pauta_menu ;;
-      4) sorteio_menu ;;
-      5) config_menu ;;
+      1) installation_menu; pause ;;
+      2) sei_menu; pause ;;
+      3) pauta_menu; pause ;;
+      4) sorteio_menu; pause ;;
+      5) config_menu; pause ;;
       6) exit 0 ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
 }
