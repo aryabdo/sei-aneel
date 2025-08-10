@@ -15,6 +15,22 @@ LOG_DIR="$SCRIPT_DIR/logs"
 REPO_URL="https://github.com/aryabdo/sei-aneel.git"
 UPDATE_SCRIPT="$SCRIPT_DIR/update_repo.sh"
 
+# Arquivo de log do script e utilitários de interface
+SCRIPT_LOG_FILE="$LOG_DIR/sei-aneel.log"
+
+log() {
+  mkdir -p "$LOG_DIR"
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$SCRIPT_LOG_FILE"
+}
+
+show_header() {
+  local title="$1"
+  clear
+  echo -e "${BLUE}================================${NC}"
+  echo -e "${BLUE}        SEI ANEEL - ${title}        ${NC}"
+  echo -e "${BLUE}================================${NC}"
+}
+
 # Usuário ativo no terminal (considera execução via sudo)
 ACTIVE_USER="${SUDO_USER:-$USER}"
 CRONTAB_CMD="crontab"
@@ -32,6 +48,7 @@ SORTEIO_DIR="/opt/sorteio-aneel"
 SORTEIO_LOG_DIR="$SORTEIO_DIR/logs"
 
 install_sei() {
+  log "Iniciando instalação do SEI ANEEL"
   read -p "Caminho do credentials.json: " CRED
   read -p "Chave API 2captcha: " CAPTCHA
   read -p "Servidor SMTP: " SMTP_SERVER
@@ -91,15 +108,19 @@ CFG
 
   ($CRONTAB_CMD -l 2>/dev/null | grep -v 'sei-aneel.py'; echo "0 5,13,16 * * * /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
   echo -e "${GREEN}Instalação concluída.${NC}"
+  log "Instalação do SEI ANEEL concluída"
 }
 
 remove_sei() {
+  log "Removendo SEI ANEEL"
   $CRONTAB_CMD -l 2>/dev/null | grep -v 'sei-aneel.py' | $CRONTAB_CMD -
   sudo rm -rf "$SCRIPT_DIR"
   echo -e "${GREEN}Remoção concluída.${NC}"
+  log "SEI ANEEL removido"
 }
 
 install_pauta() {
+  log "Iniciando instalação da Pauta ANEEL"
   sudo rm -rf "$PAUTA_DIR"
   sudo mkdir -p "$PAUTA_LOG_DIR"
   sudo cp pauta_aneel/pauta_aneel.py "$PAUTA_DIR/"
@@ -127,6 +148,7 @@ RUN
 
   ($CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py'; echo "0 7 * * * $PAUTA_DIR/run.sh $(date +%d/%m/%Y) >> $PAUTA_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
   echo -e "${GREEN}Instalação concluída.${NC}"
+  log "Instalação da Pauta ANEEL concluída"
 }
 
 update_pauta() {
@@ -154,9 +176,11 @@ RUN
 }
 
 remove_pauta() {
+  log "Removendo Pauta ANEEL"
   $CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py' | $CRONTAB_CMD -
   sudo rm -rf "$PAUTA_DIR"
   echo -e "${GREEN}Remoção concluída.${NC}"
+  log "Pauta ANEEL removida"
 }
 
 
@@ -164,6 +188,7 @@ force_run_pauta() {
   DEFAULT_DATE=$(date +%d/%m/%Y)
   read -p $'\e[33mData da busca (dd/mm/aaaa) ['"$DEFAULT_DATE"$']: \e[0m' DATA
   DATA=${DATA:-$DEFAULT_DATE}
+  log "Execução manual da Pauta ANEEL em $DATA"
   log_file="$PAUTA_LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
   "$PAUTA_DIR/run.sh" "$DATA" | tee "$log_file"
 }
@@ -194,6 +219,7 @@ list_cron_pauta() {
 
 cron_menu_pauta() {
   while true; do
+    show_header "Cron Pauta ANEEL"
     echo -e "${CYAN}1) Incluir/Editar agendamento${NC}"
     echo -e "${CYAN}2) Apagar registro${NC}"
     echo -e "${CYAN}3) Listar agendamentos${NC}"
@@ -222,6 +248,7 @@ view_logs_pauta() {
 }
 
 install_sorteio() {
+  log "Iniciando instalação do Sorteio ANEEL"
   sudo rm -rf "$SORTEIO_DIR"
   sudo mkdir -p "$SORTEIO_LOG_DIR"
   sudo cp sorteio_aneel/sorteio_aneel.py "$SORTEIO_DIR/"
@@ -249,6 +276,7 @@ RUN
 
   ($CRONTAB_CMD -l 2>/dev/null | grep -v 'sorteio_aneel.py'; echo "0 6 * * * $SORTEIO_DIR/run.sh >> $SORTEIO_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
   echo -e "${GREEN}Instalação concluída.${NC}"
+  log "Instalação do Sorteio ANEEL concluída"
 }
 
 update_sorteio() {
@@ -276,9 +304,11 @@ RUN
 }
 
 remove_sorteio() {
+  log "Removendo Sorteio ANEEL"
   $CRONTAB_CMD -l 2>/dev/null | grep -v 'sorteio_aneel.py' | $CRONTAB_CMD -
   sudo rm -rf "$SORTEIO_DIR"
   echo -e "${GREEN}Remoção concluída.${NC}"
+  log "Sorteio ANEEL removido"
 }
 
 # Instalação global e utilitários
@@ -331,6 +361,7 @@ remove_all_modules() {
 
 installation_menu() {
   while true; do
+    show_header "Instalação"
     echo -e "${CYAN}1) Instalar todos módulos${NC}"
     echo -e "${CYAN}2) Selecionar módulos${NC}"
     echo -e "${CYAN}3) Dependências${NC}"
@@ -355,6 +386,7 @@ force_run_sorteio() {
   DEFAULT_DATE=$(date +%d/%m/%Y)
   read -p $'\e[33mData da busca (dd/mm/aaaa) ['"$DEFAULT_DATE"$']: \e[0m' DATA
   DATA=${DATA:-$DEFAULT_DATE}
+  log "Execução manual do Sorteio ANEEL em $DATA"
   log_file="$SORTEIO_LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
   "$SORTEIO_DIR/run.sh" "$DATA" | tee "$log_file"
 }
@@ -385,6 +417,7 @@ list_cron_sorteio() {
 
 cron_menu_sorteio() {
   while true; do
+    show_header "Cron Sorteio ANEEL"
     echo -e "${CYAN}1) Incluir/Editar agendamento${NC}"
     echo -e "${CYAN}2) Apagar registro${NC}"
     echo -e "${CYAN}3) Listar agendamentos${NC}"
@@ -543,6 +576,7 @@ manage_emails() {
 
 manage_processes_menu() {
   while true; do
+    show_header "Gerenciar processos"
     echo -e "${CYAN}1) Adicionar processo${NC}"
     echo -e "${CYAN}2) Remover processo${NC}"
     echo -e "${CYAN}3) Atualizar processo${NC}"
@@ -560,6 +594,7 @@ manage_processes_menu() {
 
 force_run() {
   while true; do
+    show_header "Execução Manual"
     echo -e "${CYAN}1) Executar todos os processos${NC}"
     echo -e "${CYAN}2) Executar processos específicos${NC}"
     echo -e "${CYAN}3) Enviar tabela por email${NC}"
@@ -567,9 +602,9 @@ force_run() {
     read -p $'\e[33mOpção: \e[0m' op
     log_file="$LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
     case $op in
-      1) python3 "$SCRIPT_DIR/sei-aneel.py" | tee "$log_file" ;;
-      2) read -p $'\e[33mNúmero(s) de processo (separados por espaço): \e[0m' PROC; python3 "$SCRIPT_DIR/sei-aneel.py" --processo $PROC | tee "$log_file" ;;
-      3) python3 "$SCRIPT_DIR/sei-aneel.py" --email-tabela | tee "$log_file" ;;
+      1) log "Execução manual: todos os processos"; python3 "$SCRIPT_DIR/sei-aneel.py" | tee "$log_file" ;;
+      2) read -p $'\e[33mNúmero(s) de processo (separados por espaço): \e[0m' PROC; log "Execução manual: processos $PROC"; python3 "$SCRIPT_DIR/sei-aneel.py" --processo $PROC | tee "$log_file" ;;
+      3) log "Execução manual: envio de tabela por email"; python3 "$SCRIPT_DIR/sei-aneel.py" --email-tabela | tee "$log_file" ;;
       4) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
@@ -602,6 +637,7 @@ list_cron() {
 
 cron_menu_sei() {
   while true; do
+    show_header "Cron SEI ANEEL"
     echo -e "${CYAN}1) Incluir/Editar agendamento${NC}"
     echo -e "${CYAN}2) Apagar registro${NC}"
     echo -e "${CYAN}3) Listar agendamentos${NC}"
@@ -621,6 +657,7 @@ cron_menu_sei() {
 
 cron_menu() {
   while true; do
+    show_header "Configurar CRON"
     echo -e "${CYAN}1) SEI ANEEL${NC}"
     echo -e "${CYAN}2) Pauta ANEEL${NC}"
     echo -e "${CYAN}3) Sorteio ANEEL${NC}"
@@ -701,6 +738,7 @@ remove_term() {
 
 search_terms_menu() {
   while true; do
+    show_header "Termos de Pesquisa"
     echo -e "${CYAN}1) Listar${NC}"
     echo -e "${CYAN}2) Incluir${NC}"
     echo -e "${CYAN}3) Excluir${NC}"
@@ -718,6 +756,7 @@ search_terms_menu() {
 
 backup_menu() {
   while true; do
+    show_header "Backup"
     echo -e "${CYAN}1) Backup local${NC}"
     echo -e "${CYAN}2) Backup Google Drive${NC}"
     echo -e "${CYAN}3) Voltar${NC}"
@@ -733,6 +772,7 @@ backup_menu() {
 
 connection_config_menu() {
   while true; do
+    show_header "Configurações de conexão"
     echo -e "${CYAN}1) SEI ANEEL${NC}"
     echo -e "${CYAN}2) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
@@ -746,6 +786,7 @@ connection_config_menu() {
 
 config_menu() {
   while true; do
+    show_header "Configurações"
     echo -e "${CYAN}1) Termos de Pesquisa${NC}"
     echo -e "${CYAN}2) Configurações de conexão${NC}"
     echo -e "${CYAN}3) Teste de conectividade${NC}"
@@ -767,6 +808,7 @@ config_menu() {
 
 sei_menu() {
   while true; do
+    show_header "SEI ANEEL"
     echo -e "${CYAN}1) Gerenciar processos${NC}"
     echo -e "${CYAN}2) Execução Manual${NC}"
     echo -e "${CYAN}3) Ver logs${NC}"
@@ -786,6 +828,7 @@ sei_menu() {
 pauta_menu() {
   LOG_DIR="$PAUTA_LOG_DIR"
   while true; do
+    show_header "Pauta ANEEL"
     echo -e "${CYAN}1) Execução Manual${NC}"
     echo -e "${CYAN}2) Ver logs${NC}"
     echo -e "${CYAN}3) Voltar${NC}"
@@ -803,6 +846,7 @@ pauta_menu() {
 sorteio_menu() {
   LOG_DIR="$SORTEIO_LOG_DIR"
   while true; do
+    show_header "Sorteio ANEEL"
     echo -e "${CYAN}1) Execução Manual${NC}"
     echo -e "${CYAN}2) Ver logs${NC}"
     echo -e "${CYAN}3) Voltar${NC}"
@@ -819,6 +863,7 @@ sorteio_menu() {
 # Menu principal
 main_menu() {
   while true; do
+    show_header "Menu Principal"
     echo -e "${CYAN}1) Instalação${NC}"
     echo -e "${CYAN}2) SEI ANEEL${NC}"
     echo -e "${CYAN}3) Pauta ANEEL${NC}"
