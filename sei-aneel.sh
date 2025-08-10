@@ -237,15 +237,6 @@ cron_menu_pauta() {
   done
 }
 
-view_logs_pauta() {
-  if [ -d "$PAUTA_LOG_DIR" ]; then
-    ls -1 --color=always "$PAUTA_LOG_DIR"
-    read -p $'\e[33mArquivo de log para visualizar: \e[0m' LOGF
-    [ -f "$PAUTA_LOG_DIR/$LOGF" ] && less -R "$PAUTA_LOG_DIR/$LOGF" || echo -e "${RED}Arquivo não encontrado.${NC}"
-  else
-    echo -e "${RED}Diretório de logs inexistente.${NC}"
-  fi
-}
 
 install_sorteio() {
   log "Iniciando instalação do Sorteio ANEEL"
@@ -435,15 +426,6 @@ cron_menu_sorteio() {
   done
 }
 
-view_logs_sorteio() {
-  if [ -d "$SORTEIO_LOG_DIR" ]; then
-    ls -1 --color=always "$SORTEIO_LOG_DIR"
-    read -p $'\e[33mArquivo de log para visualizar: \e[0m' LOGF
-    [ -f "$SORTEIO_LOG_DIR/$LOGF" ] && less -R "$SORTEIO_LOG_DIR/$LOGF" || echo -e "${RED}Arquivo não encontrado.${NC}"
-  else
-    echo -e "${RED}Diretório de logs inexistente.${NC}"
-  fi
-}
 
 config_twocaptcha() {
   read -p "Nova chave 2captcha: " KEY
@@ -565,7 +547,7 @@ manage_emails() {
     echo -e "${CYAN}4) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) list_emails "$CONFIG_FILE" ;;
+      1) list_emails ;;
       2) add_email ;;
       3) remove_email ;;
       4) break ;;
@@ -674,10 +656,11 @@ cron_menu() {
 }
 
 view_logs() {
-  if [ -d "$LOG_DIR" ]; then
-    ls -1 --color=always "$LOG_DIR"
+  local dir="$1"
+  if [ -d "$dir" ]; then
+    ls -1 --color=always "$dir"
     read -p $'\e[33mArquivo de log para visualizar: \e[0m' LOGF
-    [ -f "$LOG_DIR/$LOGF" ] && less -R "$LOG_DIR/$LOGF" || echo -e "${RED}Arquivo não encontrado.${NC}"
+    [ -f "$dir/$LOGF" ] && less -R "$dir/$LOGF" || echo -e "${RED}Arquivo não encontrado.${NC}"
   else
     echo -e "${RED}Diretório de logs inexistente.${NC}"
   fi
@@ -817,7 +800,7 @@ sei_menu() {
     case $OP in
       1) manage_processes_menu ;;
       2) force_run ;;
-      3) view_logs ;;
+      3) view_logs "$LOG_DIR" ;;
       4) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
@@ -826,7 +809,6 @@ sei_menu() {
 
 # Menu para Pauta ANEEL
 pauta_menu() {
-  LOG_DIR="$PAUTA_LOG_DIR"
   while true; do
     show_header "Pauta ANEEL"
     echo -e "${CYAN}1) Execução Manual${NC}"
@@ -835,7 +817,7 @@ pauta_menu() {
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
       1) force_run_pauta ;;
-      2) view_logs_pauta ;;
+      2) view_logs "$PAUTA_LOG_DIR" ;;
       3) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
@@ -844,7 +826,6 @@ pauta_menu() {
 
 # Menu para Sorteio ANEEL
 sorteio_menu() {
-  LOG_DIR="$SORTEIO_LOG_DIR"
   while true; do
     show_header "Sorteio ANEEL"
     echo -e "${CYAN}1) Execução Manual${NC}"
@@ -853,7 +834,7 @@ sorteio_menu() {
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
       1) force_run_sorteio ;;
-      2) view_logs_sorteio ;;
+      2) view_logs "$SORTEIO_LOG_DIR" ;;
       3) break ;;
       *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
