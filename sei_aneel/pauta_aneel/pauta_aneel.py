@@ -27,10 +27,11 @@ try:
 except ImportError:  # pragma: no cover - allow direct execution
     from pathlib import Path
 
-    sys.path.append(str(Path(__file__).resolve().parents[1]))
-    from config import load_config, load_search_terms
-    from email_utils import format_html_email
-    from log_utils import get_logger
+    # Allow running the script directly by adding the project root to ``sys.path``
+    sys.path.append(str(Path(__file__).resolve().parents[2]))
+    from sei_aneel.config import load_config, load_search_terms
+    from sei_aneel.email_utils import format_html_email
+    from sei_aneel.log_utils import get_logger
 
 # Diretório de dados e arquivos de log
 DATA_DIR = os.environ.get("PAUTA_DATA_DIR", os.path.join(os.path.expanduser("~"), ".pauta_aneel"))
