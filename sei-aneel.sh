@@ -750,12 +750,14 @@ backup_menu() {
     show_header "Backup"
     echo -e "${CYAN}1) Backup local${NC}"
     echo -e "${CYAN}2) Backup Google Drive${NC}"
-    echo -e "${CYAN}3) Voltar${NC}"
+    echo -e "${CYAN}3) Restaurar backup${NC}"
+    echo -e "${CYAN}4) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) python3 "$SCRIPT_DIR/backup_manager.py" local; pause ;;
       2) python3 "$SCRIPT_DIR/backup_manager.py" gdrive; pause ;;
-      3) break ;;
+      3) python3 "$SCRIPT_DIR/backup_manager.py" restore; pause ;;
+      4) break ;;
       *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
