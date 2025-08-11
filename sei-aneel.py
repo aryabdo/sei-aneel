@@ -787,9 +787,9 @@ class PlanilhaHandler:
         def _find_row():
             proc_col = self.sheet.col_values(1)
             proc_number_norm = self.normalizar_numero(proc_number)
-            for idx, val in enumerate(proc_col):
+            for idx, val in enumerate(proc_col[1:], start=2):
                 if self.normalizar_numero(val) == proc_number_norm:
-                    return idx + 1
+                    return idx
             return None
         
         return operacao_com_retry(_find_row, logger=self.logger)
