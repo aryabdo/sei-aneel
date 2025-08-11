@@ -226,12 +226,12 @@ O sistema possui backup automático de:
 - 📝 Logs
 - 📊 Histórico de execução
 
-Gerenciar backups:
+Gerenciar backups e restaurações:
 ```bash
 sei-aneel backup
 ```
 
-Os arquivos são guardados localmente em `backups/` e, quando configurado `google_drive.backup_folder_id`, também são enviados para o Google Drive (por exemplo, `Meu Drive/Servidor/Backup/Sistema PAINEEL`). Apenas os três backups mais recentes são mantidos, removendo os mais antigos automaticamente.
+Pelo menu acima é possível criar ou restaurar backups. Os arquivos são guardados localmente em `backups/` e, quando configurado `google_drive.backup_folder_id`, também podem ser enviados para o Google Drive (por exemplo, `Meu Drive/Servidor/Backup/Sistema PAINEEL`). Apenas os três backups mais recentes são mantidos, removendo os mais antigos automaticamente.
 
 ## 📝 Logs
 
