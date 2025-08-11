@@ -1,4 +1,4 @@
-"""Centralized configuration utilities for SEI ANEEL modules.
+"""Centralized configuration utilities for PAINEEL modules.
 
 All modules should import :func:`load_config` from this package to obtain
 configuration values.  The configuration file is a single JSON document and is
@@ -15,12 +15,12 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, List
 
-# Directory where configuration files are stored.  ``SEI_ANEEL_CONFIG`` can be
+# Directory where configuration files are stored.  ``PAINEEL_CONFIG`` can be
 # used to override the location of ``configs.json``; otherwise the project uses
 # ``/opt/sei-aneel/config/configs.json``.
 CONFIG_DIR = Path("/opt/sei-aneel/config")
 DEFAULT_CONFIG_PATH = Path(
-    os.environ.get("SEI_ANEEL_CONFIG", CONFIG_DIR / "configs.json")
+    os.environ.get("PAINEEL_CONFIG", CONFIG_DIR / "configs.json")
 )
 
 _EXAMPLE_CONFIG = Path(__file__).with_name("configs.example.json")

@@ -1,4 +1,4 @@
-# 🤖 SEI ANEEL Automation System - Interactive Edition
+# 🤖 PAINEEL Automation System - Interactive Edition
 
 <div align="center">
 
@@ -6,7 +6,7 @@
 [![Python 3.6+](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/downloads/)
 [![Platform](https://img.shields.io/badge/platform-windows%20%7C%20linux-lightgrey.svg)]()
 
-**Sistema de automação interativo para monitoramento de processos SEI ANEEL com interface colorida, resolução automática de CAPTCHA e integração com Google Sheets.**
+**Sistema de automação interativo para monitoramento de processos PAINEEL com interface colorida, resolução automática de CAPTCHA e integração com Google Sheets.**
 
 Além do monitoramento de processos, o projeto inclui os utilitários **pauta_aneel** e **sorteio_aneel**.  Todos os módulos podem ser instalados e gerenciados pelo script `sei-aneel.sh`, que apresenta um menu principal para instalar, atualizar, configurar, executar manualmente ou agendar cada ferramenta. Cada utilitário grava seus logs em `/opt/pauta-aneel/logs` e `/opt/sorteio-aneel/logs`, evitando erros de permissão em `/tmp`.
 
@@ -30,7 +30,7 @@ Além do monitoramento de processos, o projeto inclui os utilitários **pauta_an
 - 🎯 **Limitação de processos** para testes rápidos
 
 ### Funcionalidades Core
-- 🔄 **Extração automatizada** de dados de processos SEI ANEEL
+- 🔄 **Extração automatizada** de dados de processos PAINEEL
 - 🧩 **Resolução automática de CAPTCHA** usando 2captcha e OCR local (Tesseract)
 - 📊 **Integração com Google Sheets** para armazenamento de dados
 - 📧 **Sistema de notificações avançado** por email com detecção de mudanças
@@ -289,7 +289,7 @@ Este projeto está licenciado sob a MIT License - veja o arquivo [LICENSE](LICEN
 
 <div align="center">
 
-**Feito com ❤️ para automatização de processos SEI ANEEL**
+**Feito com ❤️ para automatização de processos PAINEEL**
 
 [⬆️ Voltar ao topo](#-sei-aneel-automation-system)
 

@@ -1,4 +1,4 @@
-"""Core utilities for the SEI ANEEL automation project."""
+"""Core utilities for the PAINEEL automation project."""
 
 __all__ = [
     "email_utils",
