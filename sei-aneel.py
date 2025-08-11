@@ -1169,7 +1169,8 @@ def processar_processo(proc: str, driver, planilha_handler: Optional[PlanilhaHan
                 texto_safe = texto.replace('"', '\\"')
                 if link:
                     link_safe = link.replace('"', '\\"')
-                    doc_formula_parts.append(f'HYPERLINK("{link_safe}", "{texto_safe}")')
+                    # Usa ';' para compatibilidade com locale PT-BR nas fórmulas
+                    doc_formula_parts.append(f'HYPERLINK("{link_safe}"; "{texto_safe}")')
                 else:
                     doc_formula_parts.append(f'"{texto_safe}"')
             doc_nr = "=" + "&CHAR(10)&".join(doc_formula_parts) if doc_formula_parts else ""
