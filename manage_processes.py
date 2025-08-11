@@ -38,7 +38,7 @@ def add_process(sheet, numero):
 def remove_process(sheet, numero):
     col = sheet.col_values(1)
     numero_norm = normalize(numero)
-    for idx, val in enumerate(col, start=1):
+    for idx, val in enumerate(col[1:], start=2):
         if normalize(val) == numero_norm:
             sheet.delete_rows(idx)
             print(f'Processo {numero} removido.')
@@ -49,7 +49,7 @@ def remove_process(sheet, numero):
 def update_process(sheet, old, new):
     col = sheet.col_values(1)
     old_norm = normalize(old)
-    for idx, val in enumerate(col, start=1):
+    for idx, val in enumerate(col[1:], start=2):
         if normalize(val) == old_norm:
             sheet.update_acell(f'A{idx}', new)
             print(f'Processo {old} atualizado para {new}.')
