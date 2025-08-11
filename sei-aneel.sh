@@ -113,7 +113,11 @@ install_sei() {
 }
 CFG
 
-  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'sei-aneel.py'; echo "0 5,13,16 * * * /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
+  $CRONTAB_CMD -l 2>/dev/null | grep -v 'sei-aneel.py' | $CRONTAB_CMD -
+  read -p "Configurar agendamento (cron)? (S/n): " RESP
+  if [[ ${RESP,,} != n* ]]; then
+    schedule_cron
+  fi
   echo -e "${GREEN}Instalação concluída.${NC}"
   log "Instalação do PAINEEL concluída"
 }
@@ -153,7 +157,11 @@ PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/pauta_aneel.py" "\$@"
 RUN
   chmod +x "$PAUTA_DIR/run.sh"
 
-  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py'; echo "0 7 * * * $PAUTA_DIR/run.sh $(date +%d/%m/%Y) >> $PAUTA_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
+  $CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py' | $CRONTAB_CMD -
+  read -p "Configurar agendamento (cron)? (S/n): " RESP
+  if [[ ${RESP,,} != n* ]]; then
+    schedule_cron_pauta
+  fi
   echo -e "${GREEN}Instalação concluída.${NC}"
   log "Instalação da Pauta ANEEL concluída"
 }
@@ -272,7 +280,11 @@ PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/sorteio_aneel.py" "\$@"
 RUN
   chmod +x "$SORTEIO_DIR/run.sh"
 
-  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'sorteio_aneel.py'; echo "0 6 * * * $SORTEIO_DIR/run.sh >> $SORTEIO_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
+  $CRONTAB_CMD -l 2>/dev/null | grep -v 'sorteio_aneel.py' | $CRONTAB_CMD -
+  read -p "Configurar agendamento (cron)? (S/n): " RESP
+  if [[ ${RESP,,} != n* ]]; then
+    schedule_cron_sorteio
+  fi
   echo -e "${GREEN}Instalação concluída.${NC}"
   log "Instalação do Sorteio ANEEL concluída"
 }
@@ -791,10 +803,23 @@ show_status() {
   else
     echo -e "${CYAN}Termos de busca:${NC} 0"
   fi
-  if $CRONTAB_CMD -l 2>/dev/null | grep -q 'sei-aneel.py'; then
-    echo -e "${CYAN}Cron PAINEEL:${NC} ativo"
+  cron_entry=$($CRONTAB_CMD -l 2>/dev/null | grep 'sei-aneel.py')
+  if [ -n "$cron_entry" ]; then
+    echo -e "${CYAN}Cron PAINEEL:${NC} $(echo "$cron_entry" | awk '{print $1,$2,$3,$4,$5}')"
   else
     echo -e "${YELLOW}Cron PAINEEL:${NC} inativo"
+  fi
+  cron_entry=$($CRONTAB_CMD -l 2>/dev/null | grep 'pauta_aneel.py')
+  if [ -n "$cron_entry" ]; then
+    echo -e "${CYAN}Cron Pauta ANEEL:${NC} $(echo "$cron_entry" | awk '{print $1,$2,$3,$4,$5}')"
+  else
+    echo -e "${YELLOW}Cron Pauta ANEEL:${NC} inativo"
+  fi
+  cron_entry=$($CRONTAB_CMD -l 2>/dev/null | grep 'sorteio_aneel.py')
+  if [ -n "$cron_entry" ]; then
+    echo -e "${CYAN}Cron Sorteio ANEEL:${NC} $(echo "$cron_entry" | awk '{print $1,$2,$3,$4,$5}')"
+  else
+    echo -e "${YELLOW}Cron Sorteio ANEEL:${NC} inativo"
   fi
 }
 
@@ -804,17 +829,15 @@ config_menu() {
     echo -e "${CYAN}1) Termos de Pesquisa${NC}"
     echo -e "${CYAN}2) Configurações de conexão${NC}"
     echo -e "${CYAN}3) Teste de conectividade${NC}"
-    echo -e "${CYAN}4) Configurações CRON${NC}"
-    echo -e "${CYAN}5) Backup${NC}"
-    echo -e "${CYAN}6) Voltar${NC}"
+    echo -e "${CYAN}4) Backup${NC}"
+    echo -e "${CYAN}5) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) search_terms_menu; pause ;;
       2) connection_config_menu; pause ;;
       3) test_connectivity; pause ;;
-      4) cron_menu; pause ;;
-      5) backup_menu; pause ;;
-      6) break ;;
+      4) backup_menu; pause ;;
+      5) break ;;
       *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
@@ -880,16 +903,18 @@ main_menu() {
     echo -e "${CYAN}2) PAINEEL${NC}"
     echo -e "${CYAN}3) Pauta ANEEL${NC}"
     echo -e "${CYAN}4) Sorteio ANEEL${NC}"
-    echo -e "${CYAN}5) Configurações${NC}"
-    echo -e "${CYAN}6) Sair${NC}"
+    echo -e "${CYAN}5) Agendamentos${NC}"
+    echo -e "${CYAN}6) Configurações${NC}"
+    echo -e "${CYAN}7) Sair${NC}"
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
       1) installation_menu; pause ;;
       2) sei_menu; pause ;;
       3) pauta_menu; pause ;;
       4) sorteio_menu; pause ;;
-      5) config_menu; pause ;;
-      6) exit 0 ;;
+      5) cron_menu; pause ;;
+      6) config_menu; pause ;;
+      7) exit 0 ;;
       *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
@@ -906,6 +931,8 @@ case "${1:-}" in
     test_connectivity;;
   backup)
     backup_menu;;
+  cron)
+    cron_menu;;
   logs)
     view_logs "$LOG_DIR";;
   status)
