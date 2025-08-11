@@ -12,7 +12,8 @@
   "google_drive": {
     "credentials_file": "/caminho/para/credentials.json",
     "sheet_name": "Processos ANEEL",
-    "worksheet_name": "Processos"
+    "worksheet_name": "Processos",
+    "backup_folder_id": "ID_DA_PASTA_DO_DRIVE"
   },
   "email": {
     "recipients": ["destinatario@exemplo.com"]

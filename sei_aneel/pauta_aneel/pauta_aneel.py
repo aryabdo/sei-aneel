@@ -285,11 +285,10 @@ def main():
     if not url or not data_encontrada:
         logger.info("Nenhum link associado à data encontrada.")
         subject = f"{hoje_str} Busca Pauta ANEEL - Nenhuma data encontrada"
-        body = "Nao encontrada pauta para data indicada! Atenciosamente, Ary Abdo!"
+        body = "Nao encontrada pauta para data indicada!"
         content_html = (
             "<div class=\"section\">"
             "<p>Nao encontrada pauta para data indicada!</p>"
-            "<p>Atenciosamente,<br>Ary Abdo</p>"
             "</div>"
         )
         body_html = format_html_email("Pauta da Próxima Reunião ANEEL", content_html)
@@ -332,15 +331,13 @@ def main():
                 body += "Documentos nao disponibilizados.\n\n"
                 content_html += "<p>Documentos nao disponibilizados.</p>"
             content_html += "</li>"
-        body += "\nAtenciosamente,\nAry Abdo"
-        content_html += "</ul><p>Atenciosamente,<br>Ary Abdo</p></div>"
+        content_html += "</ul></div>"
         body_html = format_html_email("Pauta da Próxima Reunião ANEEL", content_html)
     else:
-        body = "Ola! Nao foram encontrados processos listados na pauta na data de pesquisa!\n\nAtenciosamente, Ary Abdo!"
+        body = "Ola! Nao foram encontrados processos listados na pauta na data de pesquisa!"
         content_html = (
             "<div class=\"section\">"
             "<p>Ola! Nao foram encontrados processos listados na pauta na data de pesquisa!</p>"
-            "<p>Atenciosamente,<br>Ary Abdo</p>"
             "</div>"
         )
         body_html = format_html_email("Pauta da Próxima Reunião ANEEL", content_html)
