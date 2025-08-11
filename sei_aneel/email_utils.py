@@ -34,7 +34,7 @@ def format_html_email(title: str, content_html: str) -> str:
     </div>
     {content_html}
     <div class="section">
-        <p><small>Este é um email automático do sistema de monitoramento SEI ANEEL.</small></p>
+        <p><small>Este é um e-mail automático do Sistema PAINEEL - Monitoramento de Processos, Pautas e Sorteios - Desenvolvido por AASN.</small></p>
     </div>
 </body></html>"""
 

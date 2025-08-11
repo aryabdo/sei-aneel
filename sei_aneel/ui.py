@@ -11,7 +11,7 @@ class InteractiveUI:
 
     def print_header(self):
         print(f"\n{Fore.CYAN}{'='*70}")
-        print(f"{Fore.CYAN}║{' '*20}{Fore.YELLOW}SEI ANEEL - Sistema de Monitoramento{' '*19}{Fore.CYAN}║")
+        print(f"{Fore.CYAN}║{' '*20}{Fore.YELLOW}PAINEEL - Sistema de Monitoramento{' '*19}{Fore.CYAN}║")
         print(f"{Fore.CYAN}║{' '*25}{Fore.GREEN}Versão 1.1.0 - Interativo{' '*24}{Fore.CYAN}║")
         print(f"{Fore.CYAN}{'='*70}")
 

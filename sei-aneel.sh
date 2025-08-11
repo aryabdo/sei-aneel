@@ -28,7 +28,7 @@ show_header() {
   local title="${1:-}"
   clear
   echo -e "${BLUE}================================${NC}"
-  echo -e "${BLUE}        SEI ANEEL - ${title}        ${NC}"
+  echo -e "${BLUE}        PAINEEL - ${title}        ${NC}"
   echo -e "${BLUE}================================${NC}"
 }
 
@@ -45,7 +45,7 @@ if [ "$CURRENT_USER" = "root" ]; then
   CRONTAB_CMD="crontab -u $ACTIVE_USER"
 fi
 
-export SEI_ANEEL_CONFIG="$CONFIG_FILE"
+export PAINEEL_CONFIG="$CONFIG_FILE"
 
 # Diretórios para módulos adicionais
 PAUTA_DIR="/opt/pauta-aneel"
@@ -55,7 +55,7 @@ SORTEIO_DIR="/opt/sorteio-aneel"
 SORTEIO_LOG_DIR="$SORTEIO_DIR/logs"
 
 install_sei() {
-  log "Iniciando instalação do SEI ANEEL"
+  log "Iniciando instalação do PAINEEL"
   read -p "Caminho do credentials.json: " CRED
   read -p "Chave API 2captcha: " CAPTCHA
   read -p "Servidor SMTP: " SMTP_SERVER
@@ -115,15 +115,15 @@ CFG
 
   ($CRONTAB_CMD -l 2>/dev/null | grep -v 'sei-aneel.py'; echo "0 5,13,16 * * * /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
   echo -e "${GREEN}Instalação concluída.${NC}"
-  log "Instalação do SEI ANEEL concluída"
+  log "Instalação do PAINEEL concluída"
 }
 
 remove_sei() {
-  log "Removendo SEI ANEEL"
+  log "Removendo PAINEEL"
   $CRONTAB_CMD -l 2>/dev/null | grep -v 'sei-aneel.py' | $CRONTAB_CMD -
   sudo rm -rf "$SCRIPT_DIR"
   echo -e "${GREEN}Remoção concluída.${NC}"
-  log "SEI ANEEL removido"
+  log "PAINEEL removido"
 }
 
 install_pauta() {
@@ -145,7 +145,7 @@ cat <<RUN > "$PAUTA_DIR/run.sh"
 #!/bin/bash
 DIR="\$(dirname "\$0")"
 cd "\$DIR"
-export SEI_ANEEL_CONFIG="$CONFIG_FILE"
+export PAINEEL_CONFIG="$CONFIG_FILE"
 PAUTA_DATA_DIR="\$DIR"
 PAUTA_LOG_FILE="\$DIR/logs/pauta_aneel.log"
 XDG_RUNTIME_DIR=\${XDG_RUNTIME_DIR:-/tmp}
@@ -172,7 +172,7 @@ update_pauta() {
 #!/bin/bash
 DIR="\$(dirname "\$0")"
 cd "\$DIR"
-export SEI_ANEEL_CONFIG="$CONFIG_FILE"
+export PAINEEL_CONFIG="$CONFIG_FILE"
 PAUTA_DATA_DIR="\$DIR"
 PAUTA_LOG_FILE="\$DIR/logs/pauta_aneel.log"
 XDG_RUNTIME_DIR=\${XDG_RUNTIME_DIR:-/tmp}
@@ -265,7 +265,7 @@ cat <<RUN > "$SORTEIO_DIR/run.sh"
 
 DIR="\$(dirname "\$0")"
 cd "\$DIR"
-export SEI_ANEEL_CONFIG="$CONFIG_FILE"
+export PAINEEL_CONFIG="$CONFIG_FILE"
 SORTEIO_DATA_DIR="\$DIR"
 SORTEIO_LOG_FILE="\$DIR/logs/sorteio_aneel.log"
 PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/sorteio_aneel.py" "\$@"
@@ -291,7 +291,7 @@ cat <<RUN > "$SORTEIO_DIR/run.sh"
 
 DIR="\$(dirname "\$0")"
 cd "\$DIR"
-export SEI_ANEEL_CONFIG="$CONFIG_FILE"
+export PAINEEL_CONFIG="$CONFIG_FILE"
 SORTEIO_DATA_DIR="\$DIR"
 SORTEIO_LOG_FILE="\$DIR/logs/sorteio_aneel.log"
 PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/sorteio_aneel.py" "\$@"
@@ -318,7 +318,7 @@ install_all_modules() {
 
 select_install_menu() {
   while true; do
-    echo -e "${CYAN}1) SEI ANEEL${NC}"
+    echo -e "${CYAN}1) PAINEEL${NC}"
     echo -e "${CYAN}2) Pauta ANEEL${NC}"
     echo -e "${CYAN}3) Sorteio ANEEL${NC}"
     echo -e "${CYAN}4) Voltar${NC}"
@@ -627,7 +627,7 @@ list_cron() {
 
 cron_menu_sei() {
   while true; do
-    show_header "Cron SEI ANEEL"
+    show_header "Cron PAINEEL"
     echo -e "${CYAN}1) Incluir/Editar agendamento${NC}"
     echo -e "${CYAN}2) Apagar registro${NC}"
     echo -e "${CYAN}3) Listar agendamentos${NC}"
@@ -648,7 +648,7 @@ cron_menu_sei() {
 cron_menu() {
   while true; do
     show_header "Configurar CRON"
-    echo -e "${CYAN}1) SEI ANEEL${NC}"
+    echo -e "${CYAN}1) PAINEEL${NC}"
     echo -e "${CYAN}2) Pauta ANEEL${NC}"
     echo -e "${CYAN}3) Sorteio ANEEL${NC}"
     echo -e "${CYAN}4) Voltar${NC}"
@@ -764,7 +764,7 @@ backup_menu() {
 connection_config_menu() {
   while true; do
     show_header "Configurações de conexão"
-    echo -e "${CYAN}1) SEI ANEEL${NC}"
+    echo -e "${CYAN}1) PAINEEL${NC}"
     echo -e "${CYAN}2) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
@@ -790,9 +790,9 @@ show_status() {
     echo -e "${CYAN}Termos de busca:${NC} 0"
   fi
   if $CRONTAB_CMD -l 2>/dev/null | grep -q 'sei-aneel.py'; then
-    echo -e "${CYAN}Cron SEI ANEEL:${NC} ativo"
+    echo -e "${CYAN}Cron PAINEEL:${NC} ativo"
   else
-    echo -e "${YELLOW}Cron SEI ANEEL:${NC} inativo"
+    echo -e "${YELLOW}Cron PAINEEL:${NC} inativo"
   fi
 }
 
@@ -820,7 +820,7 @@ config_menu() {
 
 sei_menu() {
   while true; do
-    show_header "SEI ANEEL"
+    show_header "PAINEEL"
     echo -e "${CYAN}1) Gerenciar processos${NC}"
     echo -e "${CYAN}2) Execução Manual${NC}"
     echo -e "${CYAN}3) Ver logs${NC}"
@@ -875,7 +875,7 @@ main_menu() {
   while true; do
     show_header "Menu Principal"
     echo -e "${CYAN}1) Instalação${NC}"
-    echo -e "${CYAN}2) SEI ANEEL${NC}"
+    echo -e "${CYAN}2) PAINEEL${NC}"
     echo -e "${CYAN}3) Pauta ANEEL${NC}"
     echo -e "${CYAN}4) Sorteio ANEEL${NC}"
     echo -e "${CYAN}5) Configurações${NC}"

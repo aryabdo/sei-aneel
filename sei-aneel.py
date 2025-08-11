@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-SEI ANEEL Automation System
-Sistema de monitoramento automatizado de processos SEI ANEEL
+PAINEEL Automation System
+Sistema de monitoramento automatizado de processos PAINEEL
 
 Autor: Desenvolvido para automação de processos ANEEL
 Data: 2025
@@ -452,7 +452,7 @@ class CaptchaHandler:
             self.logger.warning(f"Erro ao limpar captchas: {e}")
 
 class SEIAneel:
-    """Classe principal para interação com o SEI ANEEL"""
+    """Classe principal para interação com o PAINEEL"""
     
     def __init__(self, driver, config: ConfigManager, logger, ui: InteractiveUI = None):
         self.driver = driver
@@ -463,7 +463,7 @@ class SEIAneel:
 
     def pesquisar_e_entrar_processo(self, numero_processo: str) -> bool:
         """
-        Pesquisa e acessa um processo específico no SEI ANEEL
+        Pesquisa e acessa um processo específico no PAINEEL
         
         Args:
             numero_processo: Número do processo a ser pesquisado
@@ -832,12 +832,12 @@ class PlanilhaHandler:
 
 def main() -> List[Dict[str, str]]:
     """
-    Função principal do script de monitoramento SEI ANEEL.
+    Função principal do script de monitoramento PAINEEL.
     
     Returns:
         Lista com resultados do processamento de cada processo
     """
-    parser = argparse.ArgumentParser(description='SEI ANEEL Automation System')
+    parser = argparse.ArgumentParser(description='PAINEEL Automation System')
     
     # Define default config path baseado no SO
     if platform.system() == "Windows":
@@ -889,7 +889,7 @@ def main() -> List[Dict[str, str]]:
     logger_manager = Logger(config)
     logger = logger_manager.logger
 
-    logger.info("Iniciando script de monitoramento SEI ANEEL")
+    logger.info("Iniciando script de monitoramento PAINEEL")
 
     if args.email_tabela:
         try:
@@ -1130,7 +1130,7 @@ def main() -> List[Dict[str, str]]:
             keyboard_handler.restore_signal_handler()
         driver.quit()
         if ui:
-            print(f"\n{Fore.CYAN}🔚 Recursos liberados. Obrigado por usar o SEI ANEEL!")
+            print(f"\n{Fore.CYAN}🔚 Recursos liberados. Obrigado por usar o PAINEEL!")
     
     return resultados
 
@@ -1391,7 +1391,7 @@ def enviar_notificacao_email(planilha_handler: PlanilhaHandler,
             return {c: '<br>'.join(r[c] for r in registros if r[c]) for c in campos}
 
         # Prepara conteúdo do email
-        assunto = f"SEI ANEEL - Relatório de Monitoramento ({datetime.now().strftime('%d/%m/%Y %H:%M')})"
+        assunto = f"PAINEEL - Relatório de Monitoramento ({datetime.now().strftime('%d/%m/%Y %H:%M')})"
         
         timestamp_str = datetime.now().strftime('%d/%m/%Y às %H:%M:%S')
         corpo_html = f"""
@@ -1413,7 +1413,7 @@ def enviar_notificacao_email(planilha_handler: PlanilhaHandler,
         </head>
         <body>
             <div class="header">
-                <h2>Relatório de Monitoramento SEI ANEEL</h2>
+                <h2>Relatório de Monitoramento PAINEEL</h2>
                 <div class="timestamp">Gerado em: {timestamp_str}</div>
             </div>
         """
@@ -1493,7 +1493,7 @@ def enviar_notificacao_email(planilha_handler: PlanilhaHandler,
         
         corpo_html += """
             <div class="section">
-                <p><small>Este é um email automático do sistema de monitoramento SEI ANEEL.</small></p>
+                <p><small>Este é um e-mail automático do Sistema PAINEEL - Monitoramento de Processos, Pautas e Sorteios - Desenvolvido por AASN.</small></p>
             </div>
         </body>
         </html>
@@ -1513,7 +1513,7 @@ def enviar_notificacao_email(planilha_handler: PlanilhaHandler,
 
         # Adiciona versão texto simples e HTML
         parte_texto = MIMEText(
-            'Relatório de Monitoramento SEI ANEEL. Utilize um cliente compatível com HTML para melhor visualização.',
+            'Relatório de Monitoramento PAINEEL. Utilize um cliente compatível com HTML para melhor visualização.',
             'plain', 'utf-8')
         msg.attach(parte_texto)
         parte_html = MIMEText(corpo_html, 'html', 'utf-8')
@@ -1558,7 +1558,7 @@ def enviar_resultados_email(resultados: List[Dict[str, Any]],
             logger.warning("Configurações de email incompletas, pulando envio")
             return
 
-        assunto = f"SEI ANEEL - Resultado da Consulta ({datetime.now().strftime('%d/%m/%Y %H:%M')})"
+        assunto = f"PAINEEL - Resultado da Consulta ({datetime.now().strftime('%d/%m/%Y %H:%M')})"
         timestamp_str = datetime.now().strftime('%d/%m/%Y às %H:%M:%S')
 
         sucessos = [r for r in resultados if r.get('status') not in ('falha', 'invalido')]
@@ -1583,7 +1583,7 @@ def enviar_resultados_email(resultados: List[Dict[str, Any]],
         </head>
         <body>
             <div class="header">
-                <h2>Relatório de Monitoramento SEI ANEEL</h2>
+                <h2>Relatório de Monitoramento PAINEEL</h2>
                 <div class="timestamp">Gerado em: {timestamp_str}</div>
             </div>
         """
@@ -1699,7 +1699,7 @@ def enviar_resultados_email(resultados: List[Dict[str, Any]],
 
         corpo_html += """
             <div class="section">
-                <p><small>Este é um email automático do sistema de monitoramento SEI ANEEL.</small></p>
+                <p><small>Este é um e-mail automático do Sistema PAINEEL - Monitoramento de Processos, Pautas e Sorteios - Desenvolvido por AASN.</small></p>
             </div>
         </body>
         </html>
@@ -1717,7 +1717,7 @@ def enviar_resultados_email(resultados: List[Dict[str, Any]],
         msg['Date'] = formatdate(localtime=True)
 
         parte_texto = MIMEText(
-            'Resultados da consulta SEI ANEEL. Utilize um cliente compatível com HTML para melhor visualização.',
+            'Resultados da consulta PAINEEL. Utilize um cliente compatível com HTML para melhor visualização.',
             'plain', 'utf-8')
         msg.attach(parte_texto)
         parte_html = MIMEText(corpo_html, 'html', 'utf-8')
@@ -1763,7 +1763,7 @@ def enviar_tabela_completa_email(planilha_handler: PlanilhaHandler,
         linhas = dados[1:]
 
         assunto = (
-            f"SEI ANEEL - Tabela Completa ({datetime.now().strftime('%d/%m/%Y %H:%M')})"
+            f"PAINEEL - Tabela Completa ({datetime.now().strftime('%d/%m/%Y %H:%M')})"
         )
         timestamp_str = datetime.now().strftime('%d/%m/%Y às %H:%M:%S')
 
@@ -1799,7 +1799,7 @@ def enviar_tabela_completa_email(planilha_handler: PlanilhaHandler,
         </head>
         <body>
             <div class="header">
-                <h2>Relatório de Monitoramento SEI ANEEL</h2>
+                <h2>Relatório de Monitoramento PAINEEL</h2>
                 <div class="timestamp">Gerado em: {timestamp_str}</div>
             </div>
             <div class="section">
@@ -1810,7 +1810,7 @@ def enviar_tabela_completa_email(planilha_handler: PlanilhaHandler,
                 </table>
             </div>
             <div class="section">
-                <p><small>Este é um email automático do sistema de monitoramento SEI ANEEL.</small></p>
+                <p><small>Este é um e-mail automático do Sistema PAINEEL - Monitoramento de Processos, Pautas e Sorteios - Desenvolvido por AASN.</small></p>
             </div>
         </body>
         </html>
@@ -1828,7 +1828,7 @@ def enviar_tabela_completa_email(planilha_handler: PlanilhaHandler,
         msg['Date'] = formatdate(localtime=True)
 
         parte_texto = MIMEText(
-            'Tabela completa dos processos SEI ANEEL. Utilize um cliente compatível com HTML para melhor visualização.',
+            'Tabela completa dos processos PAINEEL. Utilize um cliente compatível com HTML para melhor visualização.',
             'plain', 'utf-8')
         msg.attach(parte_texto)
         parte_html = MIMEText(corpo_html, 'html', 'utf-8')

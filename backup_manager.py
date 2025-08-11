@@ -62,7 +62,7 @@ def backup_gdrive(config_path: str = DEFAULT_CONFIG_PATH) -> None:
     upload_to_drive(backup_file, creds_file)
 
 def main():
-    parser = argparse.ArgumentParser(description='Gerenciador de backups SEI ANEEL')
+    parser = argparse.ArgumentParser(description='Gerenciador de backups PAINEEL')
     parser.add_argument('mode', choices=['local', 'gdrive'], help='Tipo de backup a executar')
     parser.add_argument('--config', default=DEFAULT_CONFIG_PATH, help='Caminho para configs.json')
     args = parser.parse_args()
