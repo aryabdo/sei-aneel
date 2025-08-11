@@ -24,6 +24,7 @@ from sei_aneel.config import DEFAULT_CONFIG_PATH, load_config
 from sei_aneel.email_utils import format_html_email, attach_bytes, hash_content
 from sei_aneel.ui import InteractiveUI
 from sei_aneel.progress import ProgressTracker
+from sei_aneel.scheduler import ensure_cron
 
 # Inicializa colorama para Windows
 colorama.init(autoreset=True)
@@ -1850,6 +1851,7 @@ def enviar_tabela_completa_email(planilha_handler: PlanilhaHandler,
         logger.error(f"Erro ao enviar tabela completa: {e}")
 
 if __name__ == "__main__":
+    ensure_cron([5, 12, 17], __file__, "sei-aneel")
     try:
         resultados = main()
         sucesso = len([r for r in resultados if r["status"] in ["atualizado", "inserido", "processado"]])
