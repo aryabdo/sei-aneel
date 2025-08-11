@@ -231,6 +231,8 @@ Gerenciar backups:
 sei-aneel backup
 ```
 
+Os arquivos são guardados localmente em `backups/` e, quando configurado `google_drive.backup_folder_id`, também são enviados para o Google Drive (por exemplo, `Meu Drive/Servidor/Backup/Sistema PAINEEL`). Apenas os três backups mais recentes são mantidos, removendo os mais antigos automaticamente.
+
 ## 📝 Logs
 
 📍 **Localização dos logs:**

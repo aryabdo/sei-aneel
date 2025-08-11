@@ -12,6 +12,18 @@ from sei_aneel.log_utils import get_logger
 
 logger = get_logger(__name__)
 
+MAX_BACKUPS = 3
+
+
+def _cleanup_old_backups(backup_dir: Path, max_backups: int = MAX_BACKUPS) -> None:
+    backups = sorted(backup_dir.glob('sei_aneel_backup_*.zip'))
+    for old in backups[:-max_backups]:
+        try:
+            old.unlink()
+            logger.info(f'Removido backup antigo: {old}')
+        except Exception as e:
+            logger.warning(f'Falha ao remover {old}: {e}')
+
 def _zip_dirs(base_dir: Path, target_dirs: list[Path]) -> Path:
     base_dir = base_dir.resolve()
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -33,9 +45,11 @@ def backup_local(config_path: str = DEFAULT_CONFIG_PATH) -> Path:
     target_dirs = [base_dir / 'config', base_dir / 'logs']
     backup_file = _zip_dirs(base_dir, target_dirs)
     logger.info(f'Backup local criado em {backup_file}')
+    _cleanup_old_backups(backup_file.parent)
     return backup_file
 
-def upload_to_drive(file_path: Path, credentials_file: str):
+
+def upload_to_drive(file_path: Path, credentials_file: str, folder_id: str, max_backups: int = MAX_BACKUPS):
     try:
         from google.oauth2.service_account import Credentials
         from googleapiclient.discovery import build
@@ -44,22 +58,41 @@ def upload_to_drive(file_path: Path, credentials_file: str):
         logger.error(f'Bibliotecas do Google não disponíveis: {e}')
         return
 
-    scopes = ['https://www.googleapis.com/auth/drive.file']
+    scopes = ['https://www.googleapis.com/auth/drive']
     creds = Credentials.from_service_account_file(credentials_file, scopes=scopes)
     service = build('drive', 'v3', credentials=creds)
-    file_metadata = {'name': file_path.name}
+    file_metadata = {'name': file_path.name, 'parents': [folder_id]}
     media = MediaFileUpload(str(file_path), resumable=False)
-    service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+    service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields='id',
+        supportsAllDrives=True,
+    ).execute()
     logger.info('Backup enviado ao Google Drive.')
+
+    query = f"'{folder_id}' in parents and name contains 'sei_aneel_backup_'"
+    results = service.files().list(
+        q=query,
+        spaces='drive',
+        fields='files(id, name, createdTime)',
+        supportsAllDrives=True,
+        includeItemsFromAllDrives=True,
+    ).execute()
+    files = sorted(results.get('files', []), key=lambda x: x['createdTime'])
+    for f in files[:-max_backups]:
+        service.files().delete(fileId=f['id']).execute()
+        logger.info(f"Backup antigo removido do Drive: {f['name']}")
 
 def backup_gdrive(config_path: str = DEFAULT_CONFIG_PATH) -> None:
     config = load_config(config_path)
     creds_file = config.get('google_drive', {}).get('credentials_file')
-    if not creds_file:
-        logger.error('Arquivo de credenciais do Google Drive não definido.')
+    folder_id = config.get('google_drive', {}).get('backup_folder_id')
+    if not creds_file or not folder_id:
+        logger.error('Credenciais do Google Drive ou ID da pasta não definidos.')
         return
     backup_file = backup_local(config_path)
-    upload_to_drive(backup_file, creds_file)
+    upload_to_drive(backup_file, creds_file, folder_id)
 
 def main():
     parser = argparse.ArgumentParser(description='Gerenciador de backups PAINEEL')

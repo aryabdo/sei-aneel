@@ -255,11 +255,10 @@ def main():
     if not url or not data_encontrada:
         logger.info("Nenhum link associado à data encontrada.")
         subject = f"{hoje_str} Busca Sorteio ANEEL - Nenhuma data encontrada"
-        body = "Nao encontrado sorteio para data indicada! Atenciosamente, Ary Abdo!"
+        body = "Nao encontrado sorteio para data indicada!"
         content_html = (
             "<div class=\"section\">"
             "<p>Nao encontrado sorteio para data indicada!</p>"
-            "<p>Atenciosamente,<br>Ary Abdo</p>"
             "</div>"
         )
         body_html = format_html_email("Sorteio ANEEL", content_html)
@@ -291,7 +290,6 @@ def main():
         body = (
             "Foram encontrados os processos listados abaixo no sorteio realizado pela ANEEL:\n\n"
             + "\n\n".join(items)
-            + "\n\nAtenciosamente,\nAry Abdo"
         )
         content_html = (
             "<div class=\"section\">"
@@ -301,14 +299,13 @@ def main():
         for item in items:
             content_html += f"<li class=\"item\">{html.escape(item)}</li>"
             registrar_log(f"Processo encontrado: {item}")
-        content_html += "</ul><p>Atenciosamente,<br>Ary Abdo</p></div>"
+        content_html += "</ul></div>"
         body_html = format_html_email("Sorteio ANEEL", content_html)
     else:
-        body = "Ola! Nao foram encontrados processos sorteados na data de pesquisa!\n\nAtenciosamente, Ary Abdo!"
+        body = "Ola! Nao foram encontrados processos sorteados na data de pesquisa!"
         content_html = (
             "<div class=\"section\">"
             "<p>Ola! Nao foram encontrados processos sorteados na data de pesquisa!</p>"
-            "<p>Atenciosamente,<br>Ary Abdo</p>"
             "</div>"
         )
         body_html = format_html_email("Sorteio ANEEL", content_html)
