@@ -25,26 +25,37 @@ def _cleanup_old_backups(backup_dir: Path, max_backups: int = MAX_BACKUPS) -> No
         except Exception as e:
             logger.warning(f'Falha ao remover {old}: {e}')
 
-def _zip_dirs(base_dir: Path, target_dirs: list[Path]) -> Path:
+def _zip_dirs(
+    base_dir: Path,
+    target_dirs: list[Path] | None = None,
+    exclude_dirs: list[Path] | None = None,
+) -> Path:
     base_dir = base_dir.resolve()
+    if target_dirs is None:
+        target_dirs = [base_dir]
+    exclude_dirs = [d.resolve() for d in (exclude_dirs or [])]
+
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     backup_dir = base_dir / 'backups'
     backup_dir.mkdir(parents=True, exist_ok=True)
     backup_file = backup_dir / f'sei_aneel_backup_{timestamp}.zip'
+
     with zipfile.ZipFile(backup_file, 'w', zipfile.ZIP_DEFLATED) as zf:
         for d in target_dirs:
             if d.exists():
                 for root, _, files in os.walk(d):
+                    root_path = Path(root).resolve()
+                    if any(str(root_path).startswith(str(ex)) for ex in exclude_dirs):
+                        continue
                     for f in files:
-                        full_path = Path(root) / f
+                        full_path = root_path / f
                         zf.write(full_path, full_path.relative_to(base_dir))
     return backup_file
 
 def backup_local(config_path: str = DEFAULT_CONFIG_PATH) -> Path:
     cfg_path = Path(config_path)
     base_dir = cfg_path.parent.parent
-    target_dirs = [base_dir / 'config', base_dir / 'logs']
-    backup_file = _zip_dirs(base_dir, target_dirs)
+    backup_file = _zip_dirs(base_dir, exclude_dirs=[base_dir / 'backups'])
     logger.info(f'Backup local criado em {backup_file}')
     _cleanup_old_backups(backup_file.parent)
     return backup_file
