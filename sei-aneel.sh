@@ -65,7 +65,6 @@ install_sei() {
   read -s -p "Senha SMTP: " SMTP_PASS; echo
   read -p "Usar STARTTLS? (y/N): " SMTP_TLS
   read -p "Emails destinatários (separados por vírgula): " EMAILS
-  read -p "ID da pasta de backup no Google Drive: " GDRIVE_FOLDER
 
   sudo rm -rf "$SCRIPT_DIR"
   sudo mkdir -p "$SCRIPT_DIR" "$LOG_DIR" "$CONFIG_DIR"
@@ -98,8 +97,7 @@ install_sei() {
   "google_drive": {
     "credentials_file": "$CONFIG_DIR/credentials.json",
     "sheet_name": "Processos ANEEL",
-    "worksheet_name": "Processos",
-    "backup_folder_id": "$GDRIVE_FOLDER"
+    "worksheet_name": "Processos"
   },
   "email": {"recipients": [$EMAIL_JSON]},
   "paths": {
@@ -116,10 +114,6 @@ install_sei() {
 CFG
 
   $CRONTAB_CMD -l 2>/dev/null | grep -v 'sei-aneel.py' | $CRONTAB_CMD -
-  read -p "Configurar agendamento (cron)? (S/n): " RESP
-  if [[ ${RESP,,} != n* ]]; then
-    schedule_cron
-  fi
   echo -e "${GREEN}Instalação concluída.${NC}"
   log "Instalação do PAINEEL concluída"
 }
@@ -160,10 +154,6 @@ RUN
   chmod +x "$PAUTA_DIR/run.sh"
 
   $CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py' | $CRONTAB_CMD -
-  read -p "Configurar agendamento (cron)? (S/n): " RESP
-  if [[ ${RESP,,} != n* ]]; then
-    schedule_cron_pauta
-  fi
   echo -e "${GREEN}Instalação concluída.${NC}"
   log "Instalação da Pauta ANEEL concluída"
 }
@@ -210,51 +200,6 @@ force_run_pauta() {
   "$PAUTA_DIR/run.sh" "$DATA" | tee "$log_file"
 }
 
-schedule_cron_pauta() {
-  read -p "Minutos [0]: " MIN; MIN=${MIN:-0}
-  read -p "Horas [*]: " H; H=${H:-*}
-  read -p "Dias do mês [*]: " M; M=${M:-*}
-  read -p "Meses [*]: " MO; MO=${MO:-*}
-  read -p "Dias da semana [*]: " D; D=${D:-*}
-  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py'; echo "$MIN $H $M $MO $D $PAUTA_DIR/run.sh \$(date +\%d/\%m/\%Y) >> $PAUTA_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
-  echo -e "${GREEN}Cron agendado.${NC}"
-}
-
-remove_cron_pauta() {
-  $CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py' | $CRONTAB_CMD -
-  echo -e "${GREEN}Cron removido.${NC}"
-}
-
-clear_all_cron_pauta() {
-  $CRONTAB_CMD -r
-  echo -e "${GREEN}Todos agendamentos removidos.${NC}"
-}
-
-list_cron_pauta() {
-  $CRONTAB_CMD -l 2>/dev/null | grep 'pauta_aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
-}
-
-cron_menu_pauta() {
-  while true; do
-    show_header "Cron Pauta ANEEL"
-    echo -e "${CYAN}1) Incluir/Editar agendamento${NC}"
-    echo -e "${CYAN}2) Apagar registro${NC}"
-    echo -e "${CYAN}3) Listar agendamentos${NC}"
-    echo -e "${CYAN}4) Apagar todos agendamentos${NC}"
-    echo -e "${CYAN}5) Voltar${NC}"
-    read -p $'\e[33mOpção: \e[0m' op
-    case $op in
-      1) schedule_cron_pauta; pause ;;
-      2) remove_cron_pauta; pause ;;
-      3) list_cron_pauta; pause ;;
-      4) clear_all_cron_pauta; pause ;;
-      5) break ;;
-      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
-    esac
-  done
-}
-
-
 install_sorteio() {
   log "Iniciando instalação do Sorteio ANEEL"
   sudo rm -rf "$SORTEIO_DIR"
@@ -283,10 +228,6 @@ RUN
   chmod +x "$SORTEIO_DIR/run.sh"
 
   $CRONTAB_CMD -l 2>/dev/null | grep -v 'sorteio_aneel.py' | $CRONTAB_CMD -
-  read -p "Configurar agendamento (cron)? (S/n): " RESP
-  if [[ ${RESP,,} != n* ]]; then
-    schedule_cron_sorteio
-  fi
   echo -e "${GREEN}Instalação concluída.${NC}"
   log "Instalação do Sorteio ANEEL concluída"
 }
@@ -401,50 +342,6 @@ force_run_sorteio() {
   log "Execução manual do Sorteio ANEEL em $DATA"
   log_file="$SORTEIO_LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
   "$SORTEIO_DIR/run.sh" "$DATA" | tee "$log_file"
-}
-
-schedule_cron_sorteio() {
-  read -p "Minutos [0]: " MIN; MIN=${MIN:-0}
-  read -p "Horas [*]: " H; H=${H:-*}
-  read -p "Dias do mês [*]: " M; M=${M:-*}
-  read -p "Meses [*]: " MO; MO=${MO:-*}
-  read -p "Dias da semana [*]: " D; D=${D:-*}
-  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'sorteio_aneel.py'; echo "$MIN $H $M $MO $D $SORTEIO_DIR/run.sh \$(date +\%d/\%m/\%Y) >> $SORTEIO_LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
-  echo -e "${GREEN}Cron agendado.${NC}"
-}
-
-remove_cron_sorteio() {
-  $CRONTAB_CMD -l 2>/dev/null | grep -v 'sorteio_aneel.py' | $CRONTAB_CMD -
-  echo -e "${GREEN}Cron removido.${NC}"
-}
-
-clear_all_cron_sorteio() {
-  $CRONTAB_CMD -r
-  echo -e "${GREEN}Todos agendamentos removidos.${NC}"
-}
-
-list_cron_sorteio() {
-  $CRONTAB_CMD -l 2>/dev/null | grep 'sorteio_aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
-}
-
-cron_menu_sorteio() {
-  while true; do
-    show_header "Cron Sorteio ANEEL"
-    echo -e "${CYAN}1) Incluir/Editar agendamento${NC}"
-    echo -e "${CYAN}2) Apagar registro${NC}"
-    echo -e "${CYAN}3) Listar agendamentos${NC}"
-    echo -e "${CYAN}4) Apagar todos agendamentos${NC}"
-    echo -e "${CYAN}5) Voltar${NC}"
-    read -p $'\e[33mOpção: \e[0m' op
-    case $op in
-      1) schedule_cron_sorteio; pause ;;
-      2) remove_cron_sorteio; pause ;;
-      3) list_cron_sorteio; pause ;;
-      4) clear_all_cron_sorteio; pause ;;
-      5) break ;;
-      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
-    esac
-  done
 }
 
 
@@ -601,22 +498,91 @@ schedule_cron() {
   read -p "Dias do mês [*]: " M; M=${M:-*}
   read -p "Meses [*]: " MO; MO=${MO:-*}
   read -p "Dias da semana [*]: " D; D=${D:-*}
-  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'sei-aneel.py'; echo "$MIN $H $M $MO $D /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
+  echo -e "${CYAN}Scripts para agendar (separados por espaço):${NC}"
+  echo -e "${CYAN}1) PAINEEL${NC}"
+  echo -e "${CYAN}2) Pauta ANEEL${NC}"
+  echo -e "${CYAN}3) Sorteio ANEEL${NC}"
+  read -p $'\e[33mOpções: \e[0m' OPTS
+  local CURRENT
+  CURRENT=$($CRONTAB_CMD -l 2>/dev/null || true)
+  for op in $OPTS; do
+    case $op in
+      1)
+        CURRENT=$(echo "$CURRENT" | grep -v 'sei-aneel.py')
+        CURRENT="$CURRENT\n$MIN $H $M $MO $D /usr/bin/python3 $SCRIPT_DIR/sei-aneel.py >> $LOG_DIR/cron.log 2>&1"
+        ;;
+      2)
+        CURRENT=$(echo "$CURRENT" | grep -v 'pauta_aneel.py')
+        CURRENT="$CURRENT\n$MIN $H $M $MO $D $PAUTA_DIR/run.sh \$(date +\%d/\%m/\%Y) >> $PAUTA_LOG_DIR/cron.log 2>&1"
+        ;;
+      3)
+        CURRENT=$(echo "$CURRENT" | grep -v 'sorteio_aneel.py')
+        CURRENT="$CURRENT\n$MIN $H $M $MO $D $SORTEIO_DIR/run.sh \$(date +\%d/\%m/\%Y) >> $SORTEIO_LOG_DIR/cron.log 2>&1"
+        ;;
+      *)
+        echo -e "${RED}Opção inválida: $op${NC}"
+        ;;
+    esac
+  done
+  echo -e "$CURRENT" | sed '/^$/d' | $CRONTAB_CMD -
   echo -e "${GREEN}Cron agendado.${NC}"
 }
 
+list_cron() {
+  mapfile -t ENTRIES < <($CRONTAB_CMD -l 2>/dev/null | grep -E '(sei-aneel.py|pauta_aneel.py|sorteio_aneel.py)')
+  if [ ${#ENTRIES[@]} -eq 0 ]; then
+    echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
+    return
+  fi
+  for i in "${!ENTRIES[@]}"; do
+    local label=""
+    [[ ${ENTRIES[$i]} == *'sei-aneel.py'* ]] && label="PAINEEL"
+    [[ ${ENTRIES[$i]} == *'pauta_aneel.py'* ]] && label="Pauta ANEEL"
+    [[ ${ENTRIES[$i]} == *'sorteio_aneel.py'* ]] && label="Sorteio ANEEL"
+    echo "$((i+1))) ${ENTRIES[$i]} [$label]"
+  done
+}
+
 remove_cron() {
-  $CRONTAB_CMD -l 2>/dev/null | grep -v 'sei-aneel.py' | $CRONTAB_CMD -
-  echo -e "${GREEN}Cron removido.${NC}"
+  mapfile -t ENTRIES < <($CRONTAB_CMD -l 2>/dev/null | grep -E '(sei-aneel.py|pauta_aneel.py|sorteio_aneel.py)')
+  if [ ${#ENTRIES[@]} -eq 0 ]; then
+    echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
+    return
+  fi
+  list_cron
+  read -p $'\e[33mNúmero do agendamento a excluir: \e[0m' IDX
+  if [[ "$IDX" =~ ^[0-9]+$ ]] && [ "$IDX" -ge 1 ] && [ "$IDX" -le "${#ENTRIES[@]}" ]; then
+    local LINE="${ENTRIES[$IDX-1]}"
+    $CRONTAB_CMD -l 2>/dev/null | grep -vF "$LINE" | $CRONTAB_CMD -
+    echo -e "${GREEN}Agendamento removido.${NC}"
+  else
+    echo -e "${RED}Opção inválida.${NC}"
+  fi
 }
 
 clear_all_cron() {
-  $CRONTAB_CMD -r
-  echo -e "${GREEN}Todos agendamentos removidos.${NC}"
+  $CRONTAB_CMD -l 2>/dev/null | grep -v -E '(sei-aneel.py|pauta_aneel.py|sorteio_aneel.py)' | $CRONTAB_CMD -
+  echo -e "${GREEN}Agendamentos removidos.${NC}"
 }
 
-list_cron() {
-  $CRONTAB_CMD -l 2>/dev/null | grep 'sei-aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
+cron_menu() {
+  while true; do
+    show_header "Agendamentos"
+    echo -e "${CYAN}1) Incluir/Editar agendamento${NC}"
+    echo -e "${CYAN}2) Apagar registro${NC}"
+    echo -e "${CYAN}3) Listar agendamentos${NC}"
+    echo -e "${CYAN}4) Apagar todos agendamentos${NC}"
+    echo -e "${CYAN}5) Voltar${NC}"
+    read -p $'\e[33mOpção: \e[0m' op
+    case $op in
+      1) schedule_cron; pause ;;
+      2) remove_cron; pause ;;
+      3) list_cron; pause ;;
+      4) clear_all_cron; pause ;;
+      5) break ;;
+      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
+    esac
+  done
 }
 
 schedule_backup_local() {
@@ -637,44 +603,6 @@ schedule_backup_gdrive() {
   read -p "Dias da semana [*]: " D; D=${D:-*}
   ($CRONTAB_CMD -l 2>/dev/null | grep -v 'backup_manager.py gdrive'; echo "$MIN $H $M $MO $D /usr/bin/python3 $SCRIPT_DIR/backup_manager.py gdrive >> $LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
   echo -e "${GREEN}Cron agendado.${NC}"
-}
-
-cron_menu_sei() {
-  while true; do
-    show_header "Cron PAINEEL"
-    echo -e "${CYAN}1) Incluir/Editar agendamento${NC}"
-    echo -e "${CYAN}2) Apagar registro${NC}"
-    echo -e "${CYAN}3) Listar agendamentos${NC}"
-    echo -e "${CYAN}4) Apagar todos agendamentos${NC}"
-    echo -e "${CYAN}5) Voltar${NC}"
-    read -p $'\e[33mOpção: \e[0m' op
-    case $op in
-      1) schedule_cron; pause ;;
-      2) remove_cron; pause ;;
-      3) list_cron; pause ;;
-      4) clear_all_cron; pause ;;
-      5) break ;;
-      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
-    esac
-  done
-}
-
-cron_menu() {
-  while true; do
-    show_header "Configurar CRON"
-    echo -e "${CYAN}1) PAINEEL${NC}"
-    echo -e "${CYAN}2) Pauta ANEEL${NC}"
-    echo -e "${CYAN}3) Sorteio ANEEL${NC}"
-    echo -e "${CYAN}4) Voltar${NC}"
-    read -p $'\e[33mOpção: \e[0m' op
-    case $op in
-      1) cron_menu_sei; pause ;;
-      2) cron_menu_pauta; pause ;;
-      3) cron_menu_sorteio; pause ;;
-      4) break ;;
-      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
-    esac
-  done
 }
 
 view_logs() {
@@ -703,20 +631,23 @@ list_terms() {
 }
 
 add_term() {
-  local term
-  read -p $'\e[33mNovo termo: \e[0m' term
-  term=$(echo "$term" | xargs)
-  if [ -z "$term" ]; then
-    echo -e "${RED}Termo inválido.${NC}"
-    return
-  fi
+  local terms
+  read -p $'\\e[33mNovos termos (separados por vírgula): \\e[0m' terms
+  IFS=',' read -ra NEW_TERMS <<< "$terms"
   touch "$TERMS_FILE"
-  if grep -Fxq "$term" "$TERMS_FILE" 2>/dev/null; then
-    echo -e "${YELLOW}Termo já existente.${NC}"
-  else
-    echo "$term" >> "$TERMS_FILE"
-    echo -e "${GREEN}Termo adicionado.${NC}"
-  fi
+  local added=false
+  for term in "${NEW_TERMS[@]}"; do
+    term=$(echo "$term" | xargs)
+    [ -z "$term" ] && continue
+    if grep -Fxq "$term" "$TERMS_FILE" 2>/dev/null; then
+      echo -e "${YELLOW}Termo já existente: $term${NC}"
+    else
+      echo "$term" >> "$TERMS_FILE"
+      echo -e "${GREEN}Termo adicionado: $term${NC}"
+      added=true
+    fi
+  done
+  $added || echo -e "${YELLOW}Nenhum termo novo adicionado.${NC}"
 }
 
 remove_term() {
