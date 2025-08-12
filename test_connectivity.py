@@ -17,8 +17,8 @@ def check_twocaptcha(api_key):
     try:
         url = f'https://2captcha.com/res.php?key={api_key}&action=getbalance'
         with urllib.request.urlopen(url, timeout=10) as resp:
-            resp.read()
-        print('2captcha: OK')
+            balance = resp.read().decode().strip()
+        print(f'2captcha: OK - saldo {balance}')
     except Exception as e:
         print(f'2captcha: {e}')
 
@@ -44,9 +44,10 @@ def check_sheet(conf):
         creds = ServiceAccountCredentials.from_json_keyfile_name(
             conf['google_drive']['credentials_file'], scope)
         client = gspread.authorize(creds)
-        client.open(conf['google_drive']['sheet_name']).worksheet(
-            conf['google_drive']['worksheet_name'])
-        print('Google Sheets: OK')
+        sheet = conf['google_drive']['sheet_name']
+        worksheet = conf['google_drive']['worksheet_name']
+        client.open(sheet).worksheet(worksheet)
+        print(f'Google Sheets: OK - planilha "{sheet}", aba "{worksheet}"')
     except Exception as e:
         print(f'Google Sheets: {e}')
 
