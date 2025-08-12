@@ -1836,6 +1836,18 @@ def enviar_tabela_completa_email(planilha_handler: PlanilhaHandler,
         parte_html = MIMEText(corpo_html, 'html', 'utf-8')
         msg.attach(parte_html)
 
+        try:
+            xlsx_data = planilha_handler.sheet.spreadsheet.export('xlsx')
+            attach_bytes(
+                msg,
+                xlsx_data,
+                'processos.xlsx',
+                'application',
+                'vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+        except Exception as e:
+            logger.warning(f"Falha ao exportar planilha: {e}")
+
         server = smtplib.SMTP(smtp_config['server'], smtp_config.get('port', 587))
         server.ehlo()
         if smtp_config.get('starttls', False):
