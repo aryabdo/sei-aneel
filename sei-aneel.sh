@@ -492,12 +492,82 @@ force_run() {
   done
 }
 
+# Helpers para selecionar campos de agendamento
+select_minutes() {
+  echo -e "${CYAN}Minutos:${NC}"
+  echo "1) 0"
+  echo "2) */15 (a cada 15 minutos)"
+  echo "3) Personalizado"
+  read -p $'\e[33mOpção [1]: \e[0m' choice
+  case $choice in
+    2) echo "*/15" ;;
+    3) read -p "Informe minutos (ex: 0,30): " custom; echo "$custom" ;;
+    *) echo "0" ;;
+  esac
+}
+
+select_hours() {
+  echo -e "${CYAN}Horas:${NC}"
+  echo "1) * (todas)"
+  echo "2) Horário comercial (8-18)"
+  echo "3) Personalizado"
+  read -p $'\e[33mOpção [1]: \e[0m' choice
+  case $choice in
+    2) echo "8-18" ;;
+    3) read -p "Informe horas (ex: 0,12): " custom; echo "$custom" ;;
+    *) echo "*" ;;
+  esac
+}
+
+select_monthdays() {
+  echo -e "${CYAN}Dias do mês:${NC}"
+  echo "1) *"
+  echo "2) Dia 1"
+  echo "3) Personalizado"
+  read -p $'\e[33mOpção [1]: \e[0m' choice
+  case $choice in
+    2) echo "1" ;;
+    3) read -p "Informe dias (ex: 1-31): " custom; echo "$custom" ;;
+    *) echo "*" ;;
+  esac
+}
+
+select_months() {
+  echo -e "${CYAN}Meses:${NC}"
+  echo "1) *"
+  echo "2) Janeiro-Dezembro (1-12)"
+  echo "3) Personalizado"
+  read -p $'\e[33mOpção [1]: \e[0m' choice
+  case $choice in
+    2) echo "1-12" ;;
+    3) read -p "Informe meses (ex: 1,6,12): " custom; echo "$custom" ;;
+    *) echo "*" ;;
+  esac
+}
+
+select_weekdays() {
+  echo -e "${CYAN}Dias da semana:${NC}"
+  echo "1) *"
+  echo "2) Segunda a Sexta"
+  echo "3) Quarta e Sexta"
+  echo "4) Sexta a Segunda"
+  echo "5) Personalizado"
+  read -p $'\e[33mOpção [1]: \e[0m' choice
+  case $choice in
+    2) echo "1-5" ;;
+    3) echo "3,5" ;;
+    4) echo "5,6,0,1" ;;
+    5) echo "Use números 0-6 (0=Domingo)." >&2; read -p "Informe dias (ex: 1-3): " custom; echo "$custom" ;;
+    *) echo "*" ;;
+  esac
+}
+
 schedule_cron() {
-  read -p "Minutos [0]: " MIN; MIN=${MIN:-0}
-  read -p "Horas [*]: " H; H=${H:-*}
-  read -p "Dias do mês [*]: " M; M=${M:-*}
-  read -p "Meses [*]: " MO; MO=${MO:-*}
-  read -p "Dias da semana [*]: " D; D=${D:-*}
+  MIN=$(select_minutes)
+  H=$(select_hours)
+  M=$(select_monthdays)
+  MO=$(select_months)
+  D=$(select_weekdays)
   echo -e "${CYAN}Scripts para agendar (separados por espaço):${NC}"
   echo -e "${CYAN}1) PAINEEL${NC}"
   echo -e "${CYAN}2) Pauta ANEEL${NC}"
@@ -529,18 +599,30 @@ schedule_cron() {
 }
 
 list_cron() {
-  mapfile -t ENTRIES < <($CRONTAB_CMD -l 2>/dev/null | grep -E '(sei-aneel.py|pauta_aneel.py|sorteio_aneel.py)')
-  if [ ${#ENTRIES[@]} -eq 0 ]; then
-    echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
-    return
+  local found=false
+  while IFS=: read -r user _; do
+    local entries
+    entries=$(crontab -u "$user" -l 2>/dev/null)
+    if [ -n "$entries" ]; then
+      found=true
+      echo -e "${CYAN}Usuário: $user${NC}"
+      echo "$entries"
+    fi
+  done < /etc/passwd
+  if [ -f /etc/crontab ]; then
+    found=true
+    echo -e "${CYAN}Arquivo /etc/crontab:${NC}"
+    cat /etc/crontab
   fi
-  for i in "${!ENTRIES[@]}"; do
-    local label=""
-    [[ ${ENTRIES[$i]} == *'sei-aneel.py'* ]] && label="PAINEEL"
-    [[ ${ENTRIES[$i]} == *'pauta_aneel.py'* ]] && label="Pauta ANEEL"
-    [[ ${ENTRIES[$i]} == *'sorteio_aneel.py'* ]] && label="Sorteio ANEEL"
-    echo "$((i+1))) ${ENTRIES[$i]} [$label]"
+  for f in /etc/cron.d/*; do
+    [ -f "$f" ] || continue
+    found=true
+    echo -e "${CYAN}Arquivo $f:${NC}"
+    cat "$f"
   done
+  if [ "$found" = false ]; then
+    echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
+  fi
 }
 
 remove_cron() {
