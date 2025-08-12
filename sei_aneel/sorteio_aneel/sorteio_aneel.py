@@ -21,7 +21,7 @@ import sys
 
 try:
     from ..config import load_config, load_search_terms
-    from ..email_utils import format_html_email
+    from ..email_utils import format_html_email, attach_bytes, create_xlsx
     from ..log_utils import get_logger
 except ImportError:  # pragma: no cover - allow direct execution
     from pathlib import Path
@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover - allow direct execution
     # Allow running the script directly by adding the project root to ``sys.path``
     sys.path.append(str(Path(__file__).resolve().parents[2]))
     from sei_aneel.config import load_config, load_search_terms
-    from sei_aneel.email_utils import format_html_email
+    from sei_aneel.email_utils import format_html_email, attach_bytes, create_xlsx
     from sei_aneel.log_utils import get_logger
 
 # Diretório de dados e arquivos de log
@@ -80,8 +80,8 @@ def palavra_chave_no_texto(texto, palavras_chave):
     return False
 
 
-def should_notify(items, erro=False):
-    return erro or not items
+def should_notify(erro=False):
+    return erro
 
 
 
@@ -198,7 +198,7 @@ def gerar_pdf_da_pagina(url, pdf_file):
         registrar_log(f"Erro ao gerar PDF: {e}")
         return False
 
-def send_email(subject, body_plain, body_html, pdf_path=None):
+def send_email(subject, body_plain, body_html, pdf_path=None, xlsx_bytes=None):
     msg = MIMEMultipart()
     msg["From"] = SMTP_USER
     destinatarios = [e.strip() for e in EMAIL_TO.replace(';', ',').split(',') if e.strip()]
@@ -222,6 +222,15 @@ def send_email(subject, body_plain, body_html, pdf_path=None):
         )
         body_plain += aviso
         body_html = body_html.replace("</body></html>", f"<p>{aviso}</p></body></html>")
+
+    if xlsx_bytes:
+        attach_bytes(
+            msg,
+            xlsx_bytes,
+            'sorteio.xlsx',
+            'application',
+            'vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
 
     alternative_part = MIMEMultipart('alternative')
     alternative_part.attach(MIMEText(body_plain, "plain", "utf-8"))
@@ -262,7 +271,7 @@ def main():
             "</div>"
         )
         body_html = format_html_email("Sorteio ANEEL", content_html)
-        if should_notify([], True):
+        if should_notify(True):
             send_email(subject, body, body_html)
         registrar_log("Nenhum link associado à data encontrada.")
         return
@@ -270,13 +279,15 @@ def main():
     items = extract_items_from_tr(url)
     ultimo_resultado = ler_ultimo_resultado()
     items_anteriores = ultimo_resultado.get("items", [])
-    data_encontrada_anterior = ultimo_resultado.get("data_encontrada")
 
-    notificar = should_notify(items)
-    if not execucao_manual and not notificar and items == items_anteriores:
-        logger.info("Nenhuma atualização nos itens encontrados.")
-        registrar_log("Nenhuma atualização nos itens encontrados.")
-        return
+    if execucao_manual:
+        itens_para_email = items
+    else:
+        if items == items_anteriores:
+            logger.info("Nenhuma atualização nos itens encontrados.")
+            registrar_log("Nenhuma atualização nos itens encontrados.")
+            return
+        itens_para_email = [item for item in items if item not in items_anteriores]
 
     if url:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
@@ -286,17 +297,17 @@ def main():
             logger.warning("PDF não gerado, mas tentando anexar se existir.")
 
     subject = f"{hoje_str} Busca Sorteio ANEEL - {data_encontrada} - {link_text}"
-    if items:
+    if itens_para_email:
         body = (
             "Foram encontrados os processos listados abaixo no sorteio realizado pela ANEEL:\n\n"
-            + "\n\n".join(items)
+            + "\n\n".join(itens_para_email)
         )
         content_html = (
             "<div class=\"section\">"
-            f"<h3>📋 Processos Encontrados ({len(items)})</h3>"
+            f"<h3>📋 Processos Encontrados ({len(itens_para_email)})</h3>"
             "<ul>"
         )
-        for item in items:
+        for item in itens_para_email:
             content_html += f"<li class=\"item\">{html.escape(item)}</li>"
             registrar_log(f"Processo encontrado: {item}")
         content_html += "</ul></div>"
@@ -311,10 +322,11 @@ def main():
         body_html = format_html_email("Sorteio ANEEL", content_html)
         registrar_log("Nenhum processo relevante encontrado.")
 
-    logger.info("Itens relevantes encontrados:" if items else "Nenhum item relevante encontrado.")
+    logger.info("Itens relevantes encontrados:" if itens_para_email else "Nenhum item relevante encontrado.")
     logger.info(body)
-    if execucao_manual or notificar or items != items_anteriores:
-        send_email(subject, body, body_html, pdf_path)
+
+    xlsx_bytes = create_xlsx(["Processo"], [[i] for i in itens_para_email])
+    send_email(subject, body, body_html, pdf_path, xlsx_bytes)
     if not execucao_manual:
         salvar_ultimo_resultado(data_encontrada, items)
     if pdf_path and os.path.exists(pdf_path):
