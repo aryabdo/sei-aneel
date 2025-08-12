@@ -65,6 +65,7 @@ install_sei() {
   read -s -p "Senha SMTP: " SMTP_PASS; echo
   read -p "Usar STARTTLS? (y/N): " SMTP_TLS
   read -p "Emails destinatários (separados por vírgula): " EMAILS
+  read -p "ID da pasta de backup no Google Drive: " GDRIVE_FOLDER
 
   sudo rm -rf "$SCRIPT_DIR"
   sudo mkdir -p "$SCRIPT_DIR" "$LOG_DIR" "$CONFIG_DIR"
@@ -97,7 +98,8 @@ install_sei() {
   "google_drive": {
     "credentials_file": "$CONFIG_DIR/credentials.json",
     "sheet_name": "Processos ANEEL",
-    "worksheet_name": "Processos"
+    "worksheet_name": "Processos",
+    "backup_folder_id": "$GDRIVE_FOLDER"
   },
   "email": {"recipients": [$EMAIL_JSON]},
   "paths": {
@@ -477,13 +479,14 @@ config_google() {
   read -p "Caminho credentials.json: " C
   read -p "Nome da planilha [Processos ANEEL]: " SN; SN=${SN:-Processos ANEEL}
   read -p "Nome da aba [Processos]: " WS; WS=${WS:-Processos}
+  read -p "ID da pasta de backup no Drive: " BF
   sudo cp "$C" "$CONFIG_DIR/credentials.json"
-  python3 - "$CONFIG_FILE" "$CONFIG_DIR/credentials.json" "$SN" "$WS" <<'PY'
+  python3 - "$CONFIG_FILE" "$CONFIG_DIR/credentials.json" "$SN" "$WS" "$BF" <<'PY'
 import json,sys
-path,cred,sheet,ws=sys.argv[1:5]
+path,cred,sheet,ws,bf=sys.argv[1:6]
 with open(path) as f: data=json.load(f)
 GD=data.setdefault('google_drive',{})
-GD.update({'credentials_file':cred,'sheet_name':sheet,'worksheet_name':ws})
+GD.update({'credentials_file':cred,'sheet_name':sheet,'worksheet_name':ws,'backup_folder_id':bf})
 with open(path,'w') as f: json.dump(data,f,indent=2)
 PY
 }
@@ -614,6 +617,26 @@ clear_all_cron() {
 
 list_cron() {
   $CRONTAB_CMD -l 2>/dev/null | grep 'sei-aneel.py' || echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
+}
+
+schedule_backup_local() {
+  read -p "Minutos [0]: " MIN; MIN=${MIN:-0}
+  read -p "Horas [*]: " H; H=${H:-*}
+  read -p "Dias do mês [*]: " M; M=${M:-*}
+  read -p "Meses [*]: " MO; MO=${MO:-*}
+  read -p "Dias da semana [*]: " D; D=${D:-*}
+  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'backup_manager.py local'; echo "$MIN $H $M $MO $D /usr/bin/python3 $SCRIPT_DIR/backup_manager.py local >> $LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
+  echo -e "${GREEN}Cron agendado.${NC}"
+}
+
+schedule_backup_gdrive() {
+  read -p "Minutos [0]: " MIN; MIN=${MIN:-0}
+  read -p "Horas [*]: " H; H=${H:-*}
+  read -p "Dias do mês [*]: " M; M=${M:-*}
+  read -p "Meses [*]: " MO; MO=${MO:-*}
+  read -p "Dias da semana [*]: " D; D=${D:-*}
+  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'backup_manager.py gdrive'; echo "$MIN $H $M $MO $D /usr/bin/python3 $SCRIPT_DIR/backup_manager.py gdrive >> $LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
+  echo -e "${GREEN}Cron agendado.${NC}"
 }
 
 cron_menu_sei() {
@@ -751,14 +774,18 @@ backup_menu() {
     echo -e "${CYAN}2) Backup Google Drive${NC}"
     echo -e "${CYAN}3) Configurar rclone gdrive${NC}"
     echo -e "${CYAN}4) Restaurar backup${NC}"
-    echo -e "${CYAN}5) Voltar${NC}"
+    echo -e "${CYAN}5) Agendar backup local${NC}"
+    echo -e "${CYAN}6) Agendar backup Google Drive${NC}"
+    echo -e "${CYAN}7) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) python3 "$SCRIPT_DIR/backup_manager.py" local; pause ;;
       2) python3 "$SCRIPT_DIR/backup_manager.py" gdrive; pause ;;
       3) setup_rclone_gdrive; pause ;;
       4) python3 "$SCRIPT_DIR/backup_manager.py" restore; pause ;;
-      5) break ;;
+      5) schedule_backup_local; pause ;;
+      6) schedule_backup_gdrive; pause ;;
+      7) break ;;
       *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
