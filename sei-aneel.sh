@@ -494,10 +494,10 @@ force_run() {
 
 # Helpers para selecionar campos de agendamento
 select_minutes() {
-  echo -e "${CYAN}Minutos:${NC}"
-  echo "1) 0"
-  echo "2) */15 (a cada 15 minutos)"
-  echo "3) Personalizado"
+  echo -e "${CYAN}Minutos:${NC}" >&2
+  echo "1) 0" >&2
+  echo "2) */15 (a cada 15 minutos)" >&2
+  echo "3) Personalizado" >&2
   read -p $'\e[33mOpção [1]: \e[0m' choice
   case $choice in
     2) echo "*/15" ;;
@@ -507,10 +507,10 @@ select_minutes() {
 }
 
 select_hours() {
-  echo -e "${CYAN}Horas:${NC}"
-  echo "1) * (todas)"
-  echo "2) Horário comercial (8-18)"
-  echo "3) Personalizado"
+  echo -e "${CYAN}Horas:${NC}" >&2
+  echo "1) * (todas)" >&2
+  echo "2) Horário comercial (8-18)" >&2
+  echo "3) Personalizado" >&2
   read -p $'\e[33mOpção [1]: \e[0m' choice
   case $choice in
     2) echo "8-18" ;;
@@ -520,10 +520,10 @@ select_hours() {
 }
 
 select_monthdays() {
-  echo -e "${CYAN}Dias do mês:${NC}"
-  echo "1) *"
-  echo "2) Dia 1"
-  echo "3) Personalizado"
+  echo -e "${CYAN}Dias do mês:${NC}" >&2
+  echo "1) *" >&2
+  echo "2) Dia 1" >&2
+  echo "3) Personalizado" >&2
   read -p $'\e[33mOpção [1]: \e[0m' choice
   case $choice in
     2) echo "1" ;;
@@ -533,10 +533,10 @@ select_monthdays() {
 }
 
 select_months() {
-  echo -e "${CYAN}Meses:${NC}"
-  echo "1) *"
-  echo "2) Janeiro-Dezembro (1-12)"
-  echo "3) Personalizado"
+  echo -e "${CYAN}Meses:${NC}" >&2
+  echo "1) *" >&2
+  echo "2) Janeiro-Dezembro (1-12)" >&2
+  echo "3) Personalizado" >&2
   read -p $'\e[33mOpção [1]: \e[0m' choice
   case $choice in
     2) echo "1-12" ;;
@@ -546,12 +546,12 @@ select_months() {
 }
 
 select_weekdays() {
-  echo -e "${CYAN}Dias da semana:${NC}"
-  echo "1) *"
-  echo "2) Segunda a Sexta"
-  echo "3) Quarta e Sexta"
-  echo "4) Sexta a Segunda"
-  echo "5) Personalizado"
+  echo -e "${CYAN}Dias da semana:${NC}" >&2
+  echo "1) *" >&2
+  echo "2) Segunda a Sexta" >&2
+  echo "3) Quarta e Sexta" >&2
+  echo "4) Sexta a Segunda" >&2
+  echo "5) Personalizado" >&2
   read -p $'\e[33mOpção [1]: \e[0m' choice
   case $choice in
     2) echo "1-5" ;;
