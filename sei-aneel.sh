@@ -113,14 +113,14 @@ install_sei() {
 }
 CFG
 
-  $CRONTAB_CMD -l 2>/dev/null | grep -v 'sei-aneel.py' | $CRONTAB_CMD -
+  ($CRONTAB_CMD -l 2>/dev/null || true) | grep -v 'sei-aneel.py' | $CRONTAB_CMD -
   echo -e "${GREEN}Instalação concluída.${NC}"
   log "Instalação do PAINEEL concluída"
 }
 
 remove_sei() {
   log "Removendo PAINEEL"
-  $CRONTAB_CMD -l 2>/dev/null | grep -v 'sei-aneel.py' | $CRONTAB_CMD -
+  ($CRONTAB_CMD -l 2>/dev/null || true) | grep -v 'sei-aneel.py' | $CRONTAB_CMD -
   sudo rm -rf "$SCRIPT_DIR"
   echo -e "${GREEN}Remoção concluída.${NC}"
   log "PAINEEL removido"
@@ -153,7 +153,7 @@ PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/pauta_aneel.py" "\$@"
 RUN
   chmod +x "$PAUTA_DIR/run.sh"
 
-  $CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py' | $CRONTAB_CMD -
+  ($CRONTAB_CMD -l 2>/dev/null || true) | grep -v 'pauta_aneel.py' | $CRONTAB_CMD -
   echo -e "${GREEN}Instalação concluída.${NC}"
   log "Instalação da Pauta ANEEL concluída"
 }
@@ -184,7 +184,7 @@ RUN
 
 remove_pauta() {
   log "Removendo Pauta ANEEL"
-  $CRONTAB_CMD -l 2>/dev/null | grep -v 'pauta_aneel.py' | $CRONTAB_CMD -
+  ($CRONTAB_CMD -l 2>/dev/null || true) | grep -v 'pauta_aneel.py' | $CRONTAB_CMD -
   sudo rm -rf "$PAUTA_DIR"
   echo -e "${GREEN}Remoção concluída.${NC}"
   log "Pauta ANEEL removida"
@@ -227,7 +227,7 @@ PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/sorteio_aneel.py" "\$@"
 RUN
   chmod +x "$SORTEIO_DIR/run.sh"
 
-  $CRONTAB_CMD -l 2>/dev/null | grep -v 'sorteio_aneel.py' | $CRONTAB_CMD -
+  ($CRONTAB_CMD -l 2>/dev/null || true) | grep -v 'sorteio_aneel.py' | $CRONTAB_CMD -
   echo -e "${GREEN}Instalação concluída.${NC}"
   log "Instalação do Sorteio ANEEL concluída"
 }
@@ -258,7 +258,7 @@ RUN
 
 remove_sorteio() {
   log "Removendo Sorteio ANEEL"
-  $CRONTAB_CMD -l 2>/dev/null | grep -v 'sorteio_aneel.py' | $CRONTAB_CMD -
+  ($CRONTAB_CMD -l 2>/dev/null || true) | grep -v 'sorteio_aneel.py' | $CRONTAB_CMD -
   sudo rm -rf "$SORTEIO_DIR"
   echo -e "${GREEN}Remoção concluída.${NC}"
   log "Sorteio ANEEL removido"
@@ -602,7 +602,7 @@ list_cron() {
   local found=false
   while IFS=: read -r user _; do
     local entries
-    entries=$(crontab -u "$user" -l 2>/dev/null)
+    entries=$(crontab -u "$user" -l 2>/dev/null || true)
     if [ -n "$entries" ]; then
       found=true
       echo -e "${CYAN}Usuário: $user${NC}"
@@ -626,7 +626,7 @@ list_cron() {
 }
 
 remove_cron() {
-  mapfile -t ENTRIES < <($CRONTAB_CMD -l 2>/dev/null | grep -E '(sei-aneel.py|pauta_aneel.py|sorteio_aneel.py)')
+  mapfile -t ENTRIES < <($CRONTAB_CMD -l 2>/dev/null | grep -E '(sei-aneel.py|pauta_aneel.py|sorteio_aneel.py)' || true)
   if [ ${#ENTRIES[@]} -eq 0 ]; then
     echo -e "${YELLOW}Nenhum agendamento encontrado.${NC}"
     return
@@ -635,7 +635,7 @@ remove_cron() {
   read -p $'\e[33mNúmero do agendamento a excluir: \e[0m' IDX
   if [[ "$IDX" =~ ^[0-9]+$ ]] && [ "$IDX" -ge 1 ] && [ "$IDX" -le "${#ENTRIES[@]}" ]; then
     local LINE="${ENTRIES[$IDX-1]}"
-    $CRONTAB_CMD -l 2>/dev/null | grep -vF "$LINE" | $CRONTAB_CMD -
+    ($CRONTAB_CMD -l 2>/dev/null || true) | grep -vF "$LINE" | $CRONTAB_CMD -
     echo -e "${GREEN}Agendamento removido.${NC}"
   else
     echo -e "${RED}Opção inválida.${NC}"
@@ -643,7 +643,7 @@ remove_cron() {
 }
 
 clear_all_cron() {
-  $CRONTAB_CMD -l 2>/dev/null | grep -v -E '(sei-aneel.py|pauta_aneel.py|sorteio_aneel.py)' | $CRONTAB_CMD -
+  ($CRONTAB_CMD -l 2>/dev/null || true) | grep -v -E '(sei-aneel.py|pauta_aneel.py|sorteio_aneel.py)' | $CRONTAB_CMD -
   echo -e "${GREEN}Agendamentos removidos.${NC}"
 }
 
@@ -673,7 +673,7 @@ schedule_backup_local() {
   read -p "Dias do mês [*]: " M; M=${M:-*}
   read -p "Meses [*]: " MO; MO=${MO:-*}
   read -p "Dias da semana [*]: " D; D=${D:-*}
-  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'backup_manager.py local'; echo "$MIN $H $M $MO $D /usr/bin/python3 $SCRIPT_DIR/backup_manager.py local >> $LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
+  ( ($CRONTAB_CMD -l 2>/dev/null || true) | grep -v 'backup_manager.py local'; echo "$MIN $H $M $MO $D /usr/bin/python3 $SCRIPT_DIR/backup_manager.py local >> $LOG_DIR/cron.log 2>&1" ) | $CRONTAB_CMD -
   echo -e "${GREEN}Cron agendado.${NC}"
 }
 
@@ -683,7 +683,7 @@ schedule_backup_gdrive() {
   read -p "Dias do mês [*]: " M; M=${M:-*}
   read -p "Meses [*]: " MO; MO=${MO:-*}
   read -p "Dias da semana [*]: " D; D=${D:-*}
-  ($CRONTAB_CMD -l 2>/dev/null | grep -v 'backup_manager.py gdrive'; echo "$MIN $H $M $MO $D /usr/bin/python3 $SCRIPT_DIR/backup_manager.py gdrive >> $LOG_DIR/cron.log 2>&1") | $CRONTAB_CMD -
+  ( ($CRONTAB_CMD -l 2>/dev/null || true) | grep -v 'backup_manager.py gdrive'; echo "$MIN $H $M $MO $D /usr/bin/python3 $SCRIPT_DIR/backup_manager.py gdrive >> $LOG_DIR/cron.log 2>&1" ) | $CRONTAB_CMD -
   echo -e "${GREEN}Cron agendado.${NC}"
 }
 
@@ -840,19 +840,19 @@ show_status() {
   else
     echo -e "${CYAN}Termos de busca:${NC} 0"
   fi
-  cron_entry=$($CRONTAB_CMD -l 2>/dev/null | grep 'sei-aneel.py')
+  cron_entry=$($CRONTAB_CMD -l 2>/dev/null | grep 'sei-aneel.py' || true)
   if [ -n "$cron_entry" ]; then
     echo -e "${CYAN}Cron PAINEEL:${NC} $(echo "$cron_entry" | awk '{print $1,$2,$3,$4,$5}')"
   else
     echo -e "${YELLOW}Cron PAINEEL:${NC} inativo"
   fi
-  cron_entry=$($CRONTAB_CMD -l 2>/dev/null | grep 'pauta_aneel.py')
+  cron_entry=$($CRONTAB_CMD -l 2>/dev/null | grep 'pauta_aneel.py' || true)
   if [ -n "$cron_entry" ]; then
     echo -e "${CYAN}Cron Pauta ANEEL:${NC} $(echo "$cron_entry" | awk '{print $1,$2,$3,$4,$5}')"
   else
     echo -e "${YELLOW}Cron Pauta ANEEL:${NC} inativo"
   fi
-  cron_entry=$($CRONTAB_CMD -l 2>/dev/null | grep 'sorteio_aneel.py')
+  cron_entry=$($CRONTAB_CMD -l 2>/dev/null | grep 'sorteio_aneel.py' || true)
   if [ -n "$cron_entry" ]; then
     echo -e "${CYAN}Cron Sorteio ANEEL:${NC} $(echo "$cron_entry" | awk '{print $1,$2,$3,$4,$5}')"
   else
