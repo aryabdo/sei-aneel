@@ -501,27 +501,6 @@ with open(path,'w') as f: json.dump(data,f,indent=2)
 PY
 }
 
-configure_sei() {
-  while true; do
-    echo -e "${CYAN}1) Configurar 2captcha${NC}"
-    echo -e "${CYAN}2) Configurar SMTP${NC}"
-    echo -e "${CYAN}3) Configurar Google Drive${NC}"
-    echo -e "${CYAN}4) Configurar tentativas${NC}"
-    echo -e "${CYAN}5) Gerenciar emails${NC}"
-    echo -e "${CYAN}6) Voltar${NC}"
-    read -p $'\e[33mOpção: \e[0m' op
-    case $op in
-      1) config_twocaptcha ;;
-      2) config_smtp ;;
-      3) config_google ;;
-      4) config_exec ;;
-      5) manage_emails ;;
-      6) break ;;
-      *) echo -e "${RED}Opção inválida${NC}" ;;
-    esac
-  done
-}
-
 add_email() {
   read -p "Email para adicionar: " EM
   python3 - "$CONFIG_FILE" "$EM" <<'PY'
@@ -701,17 +680,18 @@ list_terms() {
 }
 
 add_term() {
-  read -p $'\e[33mNovo termo: \e[0m' TERM
-  TERM=$(echo "$TERM" | xargs)
-  if [ -z "$TERM" ]; then
+  local term
+  read -p $'\e[33mNovo termo: \e[0m' term
+  term=$(echo "$term" | xargs)
+  if [ -z "$term" ]; then
     echo -e "${RED}Termo inválido.${NC}"
     return
   fi
   touch "$TERMS_FILE"
-  if grep -Fxq "$TERM" "$TERMS_FILE" 2>/dev/null; then
+  if grep -Fxq "$term" "$TERMS_FILE" 2>/dev/null; then
     echo -e "${YELLOW}Termo já existente.${NC}"
   else
-    echo "$TERM" >> "$TERMS_FILE"
+    echo "$term" >> "$TERMS_FILE"
     echo -e "${GREEN}Termo adicionado.${NC}"
   fi
 }
@@ -757,19 +737,28 @@ search_terms_menu() {
   done
 }
 
+setup_rclone_gdrive() {
+  read -p "Arquivo credentials.json [$CONFIG_DIR/credentials.json]: " C
+  C=${C:-$CONFIG_DIR/credentials.json}
+  rclone config create gdrive drive scope drive.file service_account_file "$C"
+  echo -e "${GREEN}rclone gdrive configurado.${NC}"
+}
+
 backup_menu() {
   while true; do
     show_header "Backup"
     echo -e "${CYAN}1) Backup local${NC}"
     echo -e "${CYAN}2) Backup Google Drive${NC}"
-    echo -e "${CYAN}3) Restaurar backup${NC}"
-    echo -e "${CYAN}4) Voltar${NC}"
+    echo -e "${CYAN}3) Configurar rclone gdrive${NC}"
+    echo -e "${CYAN}4) Restaurar backup${NC}"
+    echo -e "${CYAN}5) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) python3 "$SCRIPT_DIR/backup_manager.py" local; pause ;;
       2) python3 "$SCRIPT_DIR/backup_manager.py" gdrive; pause ;;
-      3) python3 "$SCRIPT_DIR/backup_manager.py" restore; pause ;;
-      4) break ;;
+      3) setup_rclone_gdrive; pause ;;
+      4) python3 "$SCRIPT_DIR/backup_manager.py" restore; pause ;;
+      5) break ;;
       *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
@@ -778,13 +767,21 @@ backup_menu() {
 connection_config_menu() {
   while true; do
     show_header "Configurações de conexão"
-    echo -e "${CYAN}1) PAINEEL${NC}"
-    echo -e "${CYAN}2) Voltar${NC}"
+    echo -e "${CYAN}1) Configurar 2captcha${NC}"
+    echo -e "${CYAN}2) Configurar SMTP${NC}"
+    echo -e "${CYAN}3) Configurar Google Drive${NC}"
+    echo -e "${CYAN}4) Configurar tentativas${NC}"
+    echo -e "${CYAN}5) Gerenciar emails${NC}"
+    echo -e "${CYAN}6) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
-      1) configure_sei; pause ;;
-      2) break ;;
-      *) echo -e "${RED}Opção inválida${NC}"; pause ;;
+      1) config_twocaptcha ;;
+      2) config_smtp ;;
+      3) config_google ;;
+      4) config_exec ;;
+      5) manage_emails ;;
+      6) break ;;
+      *) echo -e "${RED}Opção inválida${NC}" ;;
     esac
   done
 }
@@ -830,14 +827,18 @@ config_menu() {
     echo -e "${CYAN}2) Configurações de conexão${NC}"
     echo -e "${CYAN}3) Teste de conectividade${NC}"
     echo -e "${CYAN}4) Backup${NC}"
-    echo -e "${CYAN}5) Voltar${NC}"
+    echo -e "${CYAN}5) Instalação${NC}"
+    echo -e "${CYAN}6) Agendamentos${NC}"
+    echo -e "${CYAN}7) Voltar${NC}"
     read -p $'\e[33mOpção: \e[0m' op
     case $op in
       1) search_terms_menu; pause ;;
       2) connection_config_menu; pause ;;
       3) test_connectivity; pause ;;
       4) backup_menu; pause ;;
-      5) break ;;
+      5) installation_menu; pause ;;
+      6) cron_menu; pause ;;
+      7) break ;;
       *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
@@ -899,22 +900,18 @@ sorteio_menu() {
 main_menu() {
   while true; do
     show_header "Menu Principal"
-    echo -e "${CYAN}1) Instalação${NC}"
-    echo -e "${CYAN}2) PAINEEL${NC}"
-    echo -e "${CYAN}3) Pauta ANEEL${NC}"
-    echo -e "${CYAN}4) Sorteio ANEEL${NC}"
-    echo -e "${CYAN}5) Agendamentos${NC}"
-    echo -e "${CYAN}6) Configurações${NC}"
-    echo -e "${CYAN}7) Sair${NC}"
+    echo -e "${CYAN}1) PAINEEL${NC}"
+    echo -e "${CYAN}2) Pauta ANEEL${NC}"
+    echo -e "${CYAN}3) Sorteio ANEEL${NC}"
+    echo -e "${CYAN}4) Configurações${NC}"
+    echo -e "${CYAN}5) Sair${NC}"
     read -p $'\e[33mOpção: \e[0m' OP
     case $OP in
-      1) installation_menu; pause ;;
-      2) sei_menu; pause ;;
-      3) pauta_menu; pause ;;
-      4) sorteio_menu; pause ;;
-      5) cron_menu; pause ;;
-      6) config_menu; pause ;;
-      7) exit 0 ;;
+      1) sei_menu; pause ;;
+      2) pauta_menu; pause ;;
+      3) sorteio_menu; pause ;;
+      4) config_menu; pause ;;
+      5) exit 0 ;;
       *) echo -e "${RED}Opção inválida${NC}"; pause ;;
     esac
   done
