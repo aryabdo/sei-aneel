@@ -104,7 +104,7 @@ export PAINEEL_CONFIG="$CONFIG_FILE"
 PAUTA_DATA_DIR="\$DIR"
 PAUTA_LOG_FILE="\$DIR/logs/pauta_aneel.log"
 XDG_RUNTIME_DIR=\${XDG_RUNTIME_DIR:-/tmp}
-PYTHONPATH="$TARGET_DIR:\$PYTHONPATH" python3 "\$DIR/pauta_aneel.py" "\$@"
+PYTHONPATH="$TARGET_DIR:\${PYTHONPATH:-}" python3 "\$DIR/pauta_aneel.py" "\$@"
 RUN
 sudo chmod +x "$PAUTA_DIR/run.sh"
 
@@ -120,7 +120,7 @@ cd "\$DIR"
 export PAINEEL_CONFIG="$CONFIG_FILE"
 SORTEIO_DATA_DIR="\$DIR"
 SORTEIO_LOG_FILE="\$DIR/logs/sorteio_aneel.log"
-PYTHONPATH="$TARGET_DIR:\$PYTHONPATH" python3 "\$DIR/sorteio_aneel.py" "\$@"
+PYTHONPATH="$TARGET_DIR:\${PYTHONPATH:-}" python3 "\$DIR/sorteio_aneel.py" "\$@"
 RUN
 sudo chmod +x "$SORTEIO_DIR/run.sh"
 
