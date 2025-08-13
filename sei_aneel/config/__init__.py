@@ -90,7 +90,10 @@ def load_search_terms(path: str | Path | None = None) -> List[str]:
 
     terms_path = Path(path) if path else DEFAULT_TERMS_PATH
     ensure_terms_file(terms_path)
-    with open(terms_path, "r", encoding="utf-8") as f:
+    # Be tolerant to files saved with a different encoding.  By ignoring
+    # undecodable bytes we avoid ``UnicodeDecodeError`` crashes when users
+    # edit the search terms file in editors that do not default to UTF-8.
+    with open(terms_path, "r", encoding="utf-8", errors="ignore") as f:
         return [line.strip() for line in f if line.strip()]
 
 
@@ -109,7 +112,10 @@ def load_config(path: str | Path | None = None) -> Dict[str, Any]:
     ensure_config_file(cfg_path)
 
     try:
-        with open(cfg_path, "r", encoding="utf-8") as f:
+        # Ignore characters that cannot be decoded as UTF-8 so the
+        # configuration loader remains robust even if the file has been
+        # saved with a different encoding.
+        with open(cfg_path, "r", encoding="utf-8", errors="ignore") as f:
             config = json.load(f)
     except json.JSONDecodeError:
         config = {}

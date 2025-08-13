@@ -93,18 +93,18 @@ def parse_date(date_str):
 
 def ler_ultimo_resultado():
     try:
-        with open(LAST_RESULT_FILE, "r") as f:
+        with open(LAST_RESULT_FILE, "r", encoding="utf-8", errors="ignore") as f:
             return json.load(f)
     except Exception:
         return {"data_encontrada": None, "items": []}
 
 def salvar_ultimo_resultado(data_encontrada, items):
     try:
-        with open(LAST_RESULT_FILE, "w") as f:
+        with open(LAST_RESULT_FILE, "w", encoding="utf-8") as f:
             json.dump({
                 "data_encontrada": data_encontrada,
                 "items": items
-            }, f)
+            }, f, ensure_ascii=False)
     except Exception as e:
         registrar_log(f"Erro ao salvar último resultado: {e}")
 
