@@ -15,6 +15,7 @@ TERMS_FILE="$CONFIG_DIR/search_terms.txt"
 LOG_DIR="$SCRIPT_DIR/logs"
 REPO_URL="https://github.com/aryabdo/sei-aneel.git"
 UPDATE_SCRIPT="$SCRIPT_DIR/update_repo.sh"
+REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Arquivo de log do script e utilitários de interface
 SCRIPT_LOG_FILE="$LOG_DIR/sei-aneel.log"
@@ -196,8 +197,17 @@ force_run_pauta() {
   read -p $'\e[33mData da busca (dd/mm/aaaa) ['"$DEFAULT_DATE"$']: \e[0m' DATA
   DATA=${DATA:-$DEFAULT_DATE}
   log "Execução manual da Pauta ANEEL em $DATA"
-  log_file="$PAUTA_LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
-  "$PAUTA_DIR/run.sh" "$DATA" | tee "$log_file"
+  if [ -x "$PAUTA_DIR/run.sh" ]; then
+    mkdir -p "$PAUTA_LOG_DIR"
+    log_file="$PAUTA_LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
+    "$PAUTA_DIR/run.sh" "$DATA" | tee "$log_file"
+  else
+    local_log_dir="$REPO_DIR/logs/pauta-aneel"
+    mkdir -p "$local_log_dir"
+    log_file="$local_log_dir/exec_$(date +%Y%m%d_%H%M%S).log"
+    PYTHONPATH="$REPO_DIR:$PYTHONPATH" PAINEEL_CONFIG="$CONFIG_FILE" \
+      python3 "$REPO_DIR/sei_aneel/pauta_aneel/pauta_aneel.py" "$DATA" | tee "$log_file"
+  fi
 }
 
 install_sorteio() {
@@ -340,8 +350,17 @@ force_run_sorteio() {
   read -p $'\e[33mData da busca (dd/mm/aaaa) ['"$DEFAULT_DATE"$']: \e[0m' DATA
   DATA=${DATA:-$DEFAULT_DATE}
   log "Execução manual do Sorteio ANEEL em $DATA"
-  log_file="$SORTEIO_LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
-  "$SORTEIO_DIR/run.sh" "$DATA" | tee "$log_file"
+  if [ -x "$SORTEIO_DIR/run.sh" ]; then
+    mkdir -p "$SORTEIO_LOG_DIR"
+    log_file="$SORTEIO_LOG_DIR/exec_$(date +%Y%m%d_%H%M%S).log"
+    "$SORTEIO_DIR/run.sh" "$DATA" | tee "$log_file"
+  else
+    local_log_dir="$REPO_DIR/logs/sorteio-aneel"
+    mkdir -p "$local_log_dir"
+    log_file="$local_log_dir/exec_$(date +%Y%m%d_%H%M%S).log"
+    PYTHONPATH="$REPO_DIR:$PYTHONPATH" PAINEEL_CONFIG="$CONFIG_FILE" \
+      python3 "$REPO_DIR/sei_aneel/sorteio_aneel/sorteio_aneel.py" "$DATA" | tee "$log_file"
+  fi
 }
 
 
@@ -583,11 +602,23 @@ schedule_cron() {
         ;;
       2)
         CURRENT=$(echo "$CURRENT" | grep -v 'pauta_aneel.py')
-        CURRENT="$CURRENT\n$MIN $H $M $MO $D $PAUTA_DIR/run.sh \$(date +\%d/\%m/\%Y) >> $PAUTA_LOG_DIR/cron.log 2>&1"
+        if [ -x "$PAUTA_DIR/run.sh" ]; then
+          CURRENT="$CURRENT\n$MIN $H $M $MO $D $PAUTA_DIR/run.sh \$(date +\%d/\%m/\%Y) >> $PAUTA_LOG_DIR/cron.log 2>&1"
+        else
+          local_log_dir="$REPO_DIR/logs/pauta-aneel"
+          mkdir -p "$local_log_dir"
+          CURRENT="$CURRENT\n$MIN $H $M $MO $D /usr/bin/python3 $REPO_DIR/sei_aneel/pauta_aneel/pauta_aneel.py \$(date +\%d/\%m/\%Y) >> $local_log_dir/cron.log 2>&1"
+        fi
         ;;
       3)
         CURRENT=$(echo "$CURRENT" | grep -v 'sorteio_aneel.py')
-        CURRENT="$CURRENT\n$MIN $H $M $MO $D $SORTEIO_DIR/run.sh \$(date +\%d/\%m/\%Y) >> $SORTEIO_LOG_DIR/cron.log 2>&1"
+        if [ -x "$SORTEIO_DIR/run.sh" ]; then
+          CURRENT="$CURRENT\n$MIN $H $M $MO $D $SORTEIO_DIR/run.sh \$(date +\%d/\%m/\%Y) >> $SORTEIO_LOG_DIR/cron.log 2>&1"
+        else
+          local_log_dir="$REPO_DIR/logs/sorteio-aneel"
+          mkdir -p "$local_log_dir"
+          CURRENT="$CURRENT\n$MIN $H $M $MO $D /usr/bin/python3 $REPO_DIR/sei_aneel/sorteio_aneel/sorteio_aneel.py \$(date +\%d/\%m/\%Y) >> $local_log_dir/cron.log 2>&1"
+        fi
         ;;
       *)
         echo -e "${RED}Opção inválida: $op${NC}"
