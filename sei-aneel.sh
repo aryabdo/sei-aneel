@@ -82,7 +82,7 @@ install_sei() {
 
   sudo apt-get update
   sudo apt-get install -y python3 python3-pip tesseract-ocr chromium-browser chromium-chromedriver
-  sudo pip3 install --break-system-packages --force-reinstall --no-cache-dir -r "$SCRIPT_DIR/requirements.txt"
+  sudo pip3 install --break-system-packages --ignore-installed --no-cache-dir -r "$SCRIPT_DIR/requirements.txt"
 
   STARTTLS=false
   [[ "${SMTP_TLS,,}" == "y" ]] && STARTTLS=true
@@ -155,7 +155,7 @@ install_pauta() {
 
   sudo apt-get update
   sudo apt-get install -y python3 python3-pip
-  sudo pip3 install --break-system-packages --force-reinstall --no-cache-dir -r "$PAUTA_DIR/requirements.txt"
+  sudo pip3 install --break-system-packages --ignore-installed --no-cache-dir -r "$PAUTA_DIR/requirements.txt"
 
 cat <<RUN > "$PAUTA_DIR/run.sh"
 #!/bin/bash
@@ -184,7 +184,7 @@ update_pauta() {
   sudo cp "$TMP_DIR/sei_aneel/pauta_aneel/pauta_aneel.py" "$PAUTA_DIR/"
   sudo cp "$TMP_DIR/requirements.txt" "$PAUTA_DIR/"
   sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$PAUTA_DIR"
-  sudo pip3 install --break-system-packages --force-reinstall --no-cache-dir -r "$PAUTA_DIR/requirements.txt"
+  sudo pip3 install --break-system-packages --ignore-installed --no-cache-dir -r "$PAUTA_DIR/requirements.txt"
   cat <<RUN > "$PAUTA_DIR/run.sh"
 #!/bin/bash
 DIR="\$(dirname "\$0")"
@@ -240,7 +240,7 @@ install_sorteio() {
 
   sudo apt-get update
   sudo apt-get install -y python3 python3-pip
-  sudo pip3 install --break-system-packages --force-reinstall --no-cache-dir -r "$SORTEIO_DIR/requirements.txt"
+  sudo pip3 install --break-system-packages --ignore-installed --no-cache-dir -r "$SORTEIO_DIR/requirements.txt"
 
 cat <<RUN > "$SORTEIO_DIR/run.sh"
 #!/bin/bash
@@ -268,7 +268,7 @@ update_sorteio() {
   sudo cp "$TMP_DIR/sei_aneel/sorteio_aneel/sorteio_aneel.py" "$SORTEIO_DIR/"
   sudo cp "$TMP_DIR/requirements.txt" "$SORTEIO_DIR/"
   sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$SORTEIO_DIR"
-  sudo pip3 install --break-system-packages --force-reinstall --no-cache-dir -r "$SORTEIO_DIR/requirements.txt"
+  sudo pip3 install --break-system-packages --ignore-installed --no-cache-dir -r "$SORTEIO_DIR/requirements.txt"
 cat <<RUN > "$SORTEIO_DIR/run.sh"
 #!/bin/bash
 
@@ -320,7 +320,7 @@ select_install_menu() {
 install_dependencies_only() {
   sudo apt-get update
   sudo apt-get install -y python3 python3-pip tesseract-ocr chromium-browser chromium-chromedriver
-  sudo pip3 install --break-system-packages --force-reinstall --no-cache-dir -r requirements.txt
+  sudo pip3 install --break-system-packages --ignore-installed --no-cache-dir -r requirements.txt
   sudo mkdir -p "$CONFIG_DIR" "$LOG_DIR" "$PAUTA_DIR" "$PAUTA_LOG_DIR" "$SORTEIO_DIR" "$SORTEIO_LOG_DIR"
   sudo touch "$CONFIG_FILE"
   # Cria arquivo de termos de pesquisa padrão
