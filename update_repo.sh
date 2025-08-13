@@ -17,6 +17,7 @@ fi
 LOCAL_REPO="$ACTIVE_HOME/sei-aneel"
 CONFIG_DIR="$TARGET_DIR/config"
 CONFIG_FILE="$CONFIG_DIR/configs.json"
+LOG_DIR="$TARGET_DIR/logs"
 
 PAUTA_DIR="/opt/pauta-aneel"
 PAUTA_LOG_DIR="$PAUTA_DIR/logs"
@@ -69,7 +70,7 @@ else
 fi
 
 # copia para diretório de instalação
-sudo mkdir -p "$TARGET_DIR"
+sudo mkdir -p "$TARGET_DIR" "$LOG_DIR" "$CONFIG_DIR"
 sudo cp -a "$LOCAL_REPO"/. "$TARGET_DIR/"
 
 if [ ! -f "$TARGET_DIR/sei-aneel.py" ]; then
@@ -100,6 +101,7 @@ cat <<RUN | sudo tee "$PAUTA_DIR/run.sh" >/dev/null
 #!/bin/bash
 DIR="\$(dirname "\$0")"
 cd "\$DIR"
+mkdir -p "\$DIR/logs"
 export PAINEEL_CONFIG="$CONFIG_FILE"
 PAUTA_DATA_DIR="\$DIR"
 PAUTA_LOG_FILE="\$DIR/logs/pauta_aneel.log"
@@ -117,6 +119,7 @@ cat <<RUN | sudo tee "$SORTEIO_DIR/run.sh" >/dev/null
 #!/bin/bash
 DIR="\$(dirname "\$0")"
 cd "\$DIR"
+mkdir -p "\$DIR/logs"
 export PAINEEL_CONFIG="$CONFIG_FILE"
 SORTEIO_DATA_DIR="\$DIR"
 SORTEIO_LOG_FILE="\$DIR/logs/sorteio_aneel.log"
