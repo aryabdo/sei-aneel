@@ -85,7 +85,9 @@ def should_notify(erro=False):
 
 def ler_ultimo_resultado():
     try:
-        with open(LAST_RESULT_FILE, "r", encoding="utf-8") as f:
+        # Ignore undecodable characters to prevent crashes if the file was
+        # saved with an unexpected encoding.
+        with open(LAST_RESULT_FILE, "r", encoding="utf-8", errors="ignore") as f:
             return json.load(f)
     except Exception:
         return {"items": []}

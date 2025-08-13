@@ -1261,7 +1261,9 @@ def verificar_e_enviar_notificacoes(planilha_handler: PlanilhaHandler,
         snapshot_anterior = {}
         if snapshot_path.exists():
             try:
-                with open(snapshot_path, 'r', encoding='utf-8') as f:
+                # Ignore undecodable bytes so installations with different
+                # locale settings do not crash when reading the snapshot file.
+                with open(snapshot_path, 'r', encoding='utf-8', errors='ignore') as f:
                     snapshot_anterior = json.load(f)
                 logger.info("Snapshot anterior carregado")
             except Exception as e:
