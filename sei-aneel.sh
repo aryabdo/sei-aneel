@@ -150,7 +150,7 @@ export PAINEEL_CONFIG="$CONFIG_FILE"
 PAUTA_DATA_DIR="\$DIR"
 PAUTA_LOG_FILE="\$DIR/logs/pauta_aneel.log"
 XDG_RUNTIME_DIR=\${XDG_RUNTIME_DIR:-/tmp}
-PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/pauta_aneel.py" "\$@"
+PYTHONPATH="$SCRIPT_DIR:\${PYTHONPATH:-}" python3 "\$DIR/pauta_aneel.py" "\$@"
 RUN
   chmod +x "$PAUTA_DIR/run.sh"
 
@@ -177,7 +177,7 @@ export PAINEEL_CONFIG="$CONFIG_FILE"
 PAUTA_DATA_DIR="\$DIR"
 PAUTA_LOG_FILE="\$DIR/logs/pauta_aneel.log"
 XDG_RUNTIME_DIR=\${XDG_RUNTIME_DIR:-/tmp}
-PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/pauta_aneel.py" "\$@"
+PYTHONPATH="$SCRIPT_DIR:\${PYTHONPATH:-}" python3 "\$DIR/pauta_aneel.py" "\$@"
 RUN
   chmod +x "$PAUTA_DIR/run.sh"
   echo -e "${GREEN}Atualização concluída.${NC}"
@@ -205,7 +205,7 @@ force_run_pauta() {
     local_log_dir="$REPO_DIR/logs/pauta-aneel"
     mkdir -p "$local_log_dir"
     log_file="$local_log_dir/exec_$(date +%Y%m%d_%H%M%S).log"
-    PYTHONPATH="$REPO_DIR:$PYTHONPATH" PAINEEL_CONFIG="$CONFIG_FILE" \
+    PYTHONPATH="$REPO_DIR:${PYTHONPATH:-}" PAINEEL_CONFIG="$CONFIG_FILE" \
       python3 "$REPO_DIR/sei_aneel/pauta_aneel/pauta_aneel.py" "$DATA" | tee "$log_file"
   fi
 }
@@ -233,7 +233,7 @@ cd "\$DIR"
 export PAINEEL_CONFIG="$CONFIG_FILE"
 SORTEIO_DATA_DIR="\$DIR"
 SORTEIO_LOG_FILE="\$DIR/logs/sorteio_aneel.log"
-PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/sorteio_aneel.py" "\$@"
+PYTHONPATH="$SCRIPT_DIR:\${PYTHONPATH:-}" python3 "\$DIR/sorteio_aneel.py" "\$@"
 RUN
   chmod +x "$SORTEIO_DIR/run.sh"
 
@@ -259,7 +259,7 @@ cd "\$DIR"
 export PAINEEL_CONFIG="$CONFIG_FILE"
 SORTEIO_DATA_DIR="\$DIR"
 SORTEIO_LOG_FILE="\$DIR/logs/sorteio_aneel.log"
-PYTHONPATH="$SCRIPT_DIR:\$PYTHONPATH" python3 "\$DIR/sorteio_aneel.py" "\$@"
+PYTHONPATH="$SCRIPT_DIR:\${PYTHONPATH:-}" python3 "\$DIR/sorteio_aneel.py" "\$@"
 RUN
   chmod +x "$SORTEIO_DIR/run.sh"
   rm -rf "$TMP_DIR"
@@ -358,7 +358,7 @@ force_run_sorteio() {
     local_log_dir="$REPO_DIR/logs/sorteio-aneel"
     mkdir -p "$local_log_dir"
     log_file="$local_log_dir/exec_$(date +%Y%m%d_%H%M%S).log"
-    PYTHONPATH="$REPO_DIR:$PYTHONPATH" PAINEEL_CONFIG="$CONFIG_FILE" \
+    PYTHONPATH="$REPO_DIR:${PYTHONPATH:-}" PAINEEL_CONFIG="$CONFIG_FILE" \
       python3 "$REPO_DIR/sei_aneel/sorteio_aneel/sorteio_aneel.py" "$DATA" | tee "$log_file"
   fi
 }
