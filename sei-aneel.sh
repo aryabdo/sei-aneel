@@ -17,6 +17,9 @@ REPO_URL="https://github.com/aryabdo/sei-aneel.git"
 UPDATE_SCRIPT="$SCRIPT_DIR/update_repo.sh"
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# garante que o diretório de logs principal exista
+mkdir -p "$LOG_DIR"
+
 # Arquivo de log do script e utilitários de interface
 SCRIPT_LOG_FILE="$LOG_DIR/sei-aneel.log"
 
@@ -54,6 +57,9 @@ PAUTA_LOG_DIR="$PAUTA_DIR/logs"
 
 SORTEIO_DIR="/opt/sorteio-aneel"
 SORTEIO_LOG_DIR="$SORTEIO_DIR/logs"
+
+# garante que os diretórios de log dos módulos existam
+mkdir -p "$PAUTA_LOG_DIR" "$SORTEIO_LOG_DIR"
 
 install_sei() {
   log "Iniciando instalação do PAINEEL"
@@ -724,12 +730,13 @@ schedule_backup_gdrive() {
 
 view_logs() {
   local dir="${1:-$LOG_DIR}"
-  if [ -d "$dir" ]; then
+  mkdir -p "$dir"
+  if compgen -G "$dir/*" > /dev/null; then
     ls -1 --color=always "$dir"
     read -p $'\e[33mArquivo de log para visualizar: \e[0m' LOGF
     [ -f "$dir/$LOGF" ] && less -R "$dir/$LOGF" || echo -e "${RED}Arquivo não encontrado.${NC}"
   else
-    echo -e "${RED}Diretório de logs inexistente.${NC}"
+    echo -e "${YELLOW}Nenhum log disponível em $dir.${NC}"
   fi
 }
 
