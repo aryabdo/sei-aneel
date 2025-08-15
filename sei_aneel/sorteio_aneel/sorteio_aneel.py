@@ -189,21 +189,37 @@ def gerar_pdf_da_pagina(url, pdf_file):
         if not shutil.which("wkhtmltopdf"):
             registrar_log("wkhtmltopdf não encontrado")
             return False
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        html = requests.get(url, headers=headers, timeout=30).text
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp_html:
-            tmp_html.write(html.encode("utf-8"))
-            html_path = tmp_html.name
+        env = os.environ.copy()
+        env.setdefault("XDG_RUNTIME_DIR", "/tmp")
         result = subprocess.run(
-            ["wkhtmltopdf", "--quiet", html_path, pdf_file],
+            [
+                "wkhtmltopdf",
+                "--quiet",
+                "--orientation",
+                "Portrait",
+                "--print-media-type",
+                "--load-error-handling",
+                "ignore",
+                url,
+                pdf_file,
+            ],
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
+            env=env,
         )
-        if result.returncode != 0:
-            registrar_log(f"Erro ao gerar PDF (wkhtmltopdf): {result.stderr.decode()}")
-            os.remove(html_path)
+        if (
+            result.returncode != 0
+            or not os.path.exists(pdf_file)
+            or os.path.getsize(pdf_file) == 0
+        ):
+            registrar_log(
+                f"Erro ao gerar PDF (wkhtmltopdf): {result.stderr.decode()}"
+            )
             return False
-        os.remove(html_path)
+        with open(pdf_file, "rb") as f:
+            if not f.read(4).startswith(b"%PDF"):
+                registrar_log("Arquivo PDF inválido gerado")
+                return False
         return True
     except Exception as e:
         registrar_log(f"Erro ao gerar PDF: {e}")

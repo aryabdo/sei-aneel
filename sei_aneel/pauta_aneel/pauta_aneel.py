@@ -229,15 +229,38 @@ def gerar_pdf_da_pagina(url, pdf_file):
         env = os.environ.copy()
         env.setdefault("XDG_RUNTIME_DIR", "/tmp")
         result = subprocess.run(
-            ["wkhtmltopdf", "--quiet", "--load-error-handling", "ignore", url, pdf_file],
+            [
+                "wkhtmltopdf",
+                "--quiet",
+                "--orientation",
+                "Portrait",
+                "--print-media-type",
+                "--load-error-handling",
+                "ignore",
+                url,
+                pdf_file,
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            env=env
+            env=env,
         )
-        if result.returncode != 0:
-            logger.error("Erro ao gerar PDF (wkhtmltopdf): %s", result.stderr.decode())
-            registrar_log(f"Erro ao gerar PDF (wkhtmltopdf): {result.stderr.decode()}")
+        if (
+            result.returncode != 0
+            or not os.path.exists(pdf_file)
+            or os.path.getsize(pdf_file) == 0
+        ):
+            logger.error(
+                "Erro ao gerar PDF (wkhtmltopdf): %s", result.stderr.decode()
+            )
+            registrar_log(
+                f"Erro ao gerar PDF (wkhtmltopdf): {result.stderr.decode()}"
+            )
             return False
+        with open(pdf_file, "rb") as f:
+            if not f.read(4).startswith(b"%PDF"):
+                logger.error("Arquivo PDF inválido gerado")
+                registrar_log("Arquivo PDF inválido gerado")
+                return False
         return True
     except Exception as e:
         logger.error(f"Erro ao gerar PDF: {e}")
@@ -320,14 +343,14 @@ def main():
         registrar_log("Nenhum link associado à data encontrada.")
         return
 
+    items = extract_items_from_tr(url)
+
     if url:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
             pdf_path = tmp_pdf.name
         sucesso_pdf = gerar_pdf_da_pagina(url, pdf_path)
         if not sucesso_pdf:
             logger.warning("PDF não gerado, mas tentando anexar se existir.")
-
-    items = extract_items_from_tr(url)
     ultimo = ler_ultimo_resultado()
     itens_anteriores = ultimo.get("items", [])
     itens_texto = [i["text"] for i in items]
