@@ -1528,6 +1528,10 @@ def enviar_notificacao_email(planilha_handler: PlanilhaHandler,
         parte_html = MIMEText(corpo_html, 'html', 'utf-8')
         msg.attach(parte_html)
 
+        pdf_bytes = gerar_pdf_html(corpo_html, logger)
+        if pdf_bytes:
+            attach_bytes(msg, pdf_bytes, 'notificacao.pdf', 'application', 'pdf')
+
         try:
             dados = planilha_handler.get_all_values()
             headers = dados[0] if dados else []
@@ -1560,6 +1564,42 @@ def enviar_notificacao_email(planilha_handler: PlanilhaHandler,
 
     except Exception as e:
         logger.error(f"Erro ao enviar email de notificação: {e}")
+
+
+def gerar_pdf_html(html_content: str, logger) -> Optional[bytes]:
+    """Gera PDF em orientação paisagem a partir de conteúdo HTML."""
+    try:
+        if not shutil.which("wkhtmltopdf"):
+            logger.warning("wkhtmltopdf não encontrado")
+            return None
+        env = os.environ.copy()
+        env.setdefault("XDG_RUNTIME_DIR", "/tmp")
+        result = subprocess.run(
+            [
+                "wkhtmltopdf",
+                "--quiet",
+                "--orientation",
+                "Landscape",
+                "--print-media-type",
+                "--load-error-handling",
+                "ignore",
+                "-",
+                "-",
+            ],
+            input=html_content.encode("utf-8"),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env,
+        )
+        if result.returncode != 0:
+            logger.warning(
+                f"Falha ao gerar PDF (wkhtmltopdf): {result.stderr.decode()}"
+            )
+            return None
+        return result.stdout
+    except Exception as e:
+        logger.warning(f"Erro ao gerar PDF: {e}")
+        return None
 
 
 def enviar_resultados_email(resultados: List[Dict[str, Any]],
@@ -1742,6 +1782,10 @@ def enviar_resultados_email(resultados: List[Dict[str, Any]],
         parte_html = MIMEText(corpo_html, 'html', 'utf-8')
         msg.attach(parte_html)
 
+        pdf_bytes = gerar_pdf_html(corpo_html, logger)
+        if pdf_bytes:
+            attach_bytes(msg, pdf_bytes, 'resultados.pdf', 'application', 'pdf')
+
         headers = ['Processo', 'Status', 'Mensagem']
         rows = [[r.get('processo', ''), r.get('status', ''), r.get('mensagem', '')] for r in resultados]
         xlsx_data = create_xlsx(headers, rows)
@@ -1862,6 +1906,10 @@ def enviar_tabela_completa_email(planilha_handler: PlanilhaHandler,
         msg.attach(parte_texto)
         parte_html = MIMEText(corpo_html, 'html', 'utf-8')
         msg.attach(parte_html)
+
+        pdf_bytes = gerar_pdf_html(corpo_html, logger)
+        if pdf_bytes:
+            attach_bytes(msg, pdf_bytes, 'tabela_completa.pdf', 'application', 'pdf')
 
         xlsx_data = create_xlsx(cabecalho, linhas)
         attach_bytes(
