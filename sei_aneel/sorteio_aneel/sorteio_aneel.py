@@ -187,7 +187,9 @@ def extract_items_from_tr(url):
 def gerar_pdf_da_pagina(url, pdf_file):
     try:
         if not shutil.which("wkhtmltopdf"):
-            registrar_log("wkhtmltopdf não encontrado")
+            msg = "wkhtmltopdf não encontrado. Instale o pacote wkhtmltopdf para gerar PDFs."
+            logger.error(msg)
+            registrar_log(msg)
             return False
         env = os.environ.copy()
         env.setdefault("XDG_RUNTIME_DIR", "/tmp")

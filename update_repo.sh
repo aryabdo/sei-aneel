@@ -88,7 +88,7 @@ fi
 
 # instala dependências do sistema e python
 sudo apt-get update
-sudo apt-get install -y python3 python3-pip tesseract-ocr chromium-browser chromium-chromedriver
+sudo apt-get install -y python3 python3-pip tesseract-ocr chromium-browser chromium-chromedriver wkhtmltopdf
 sudo pip3 install --break-system-packages --ignore-installed -r "$TARGET_DIR/requirements.txt"
 
 # instala/atualiza módulos adicionais
