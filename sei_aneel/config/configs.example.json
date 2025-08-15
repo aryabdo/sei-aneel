@@ -16,7 +16,9 @@
     "backup_folder_id": "ID_DA_PASTA_DO_DRIVE"
   },
   "email": {
-    "recipients": ["destinatario@exemplo.com"]
+    "recipients": {
+      "destinatario@exemplo.com": ["sei", "pauta", "sorteio"]
+    }
   },
   "paths": {
     "tesseract": "/usr/bin/tesseract",

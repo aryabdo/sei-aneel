@@ -21,7 +21,13 @@ import threading
 import signal
 
 from sei_aneel.config import DEFAULT_CONFIG_PATH, load_config
-from sei_aneel.email_utils import format_html_email, attach_bytes, hash_content
+from sei_aneel.email_utils import (
+    format_html_email,
+    attach_bytes,
+    hash_content,
+    create_xlsx,
+    get_recipients,
+)
 from sei_aneel.ui import InteractiveUI
 from sei_aneel.progress import ProgressTracker
 from sei_aneel.scheduler import ensure_cron
@@ -1099,7 +1105,7 @@ def main() -> List[Dict[str, str]]:
             processos_falha = novos_falha
         
         # Verifica mudanças e envia email se configurado
-        if config.get('email.recipients'):
+        if get_recipients(config, 'sei'):
             if args.processo:
                 if ui:
                     print(f"\n\n{Fore.CYAN}📧 Enviando resultados por email...")
@@ -1292,12 +1298,12 @@ def verificar_e_enviar_notificacoes(planilha_handler: PlanilhaHandler,
             
             # Dados relevantes para comparação (exclui timestamps que mudam sempre)
             dados_processo = {
-                'tipo': linha[1] if len(linha) > 1 else '',
-                'interessados': linha[2] if len(linha) > 2 else '',
-                'documentos_nr': linha[3] if len(linha) > 3 else '',
-                'documentos_tipo': linha[4] if len(linha) > 4 else '',
-                'andamentos_data': linha[8] if len(linha) > 8 else '',
-                'andamentos_descricao': linha[10] if len(linha) > 10 else ''
+                'tipo': (linha[1] if len(linha) > 1 else '').strip(),
+                'interessados': (linha[2] if len(linha) > 2 else '').strip(),
+                'documentos_nr': (linha[3] if len(linha) > 3 else '').strip(),
+                'documentos_tipo': (linha[4] if len(linha) > 4 else '').strip(),
+                'andamentos_data': (linha[8] if len(linha) > 8 else '').strip(),
+                'andamentos_descricao': (linha[10] if len(linha) > 10 else '').strip()
             }
             
             snapshot_atual[numero_processo] = dados_processo
@@ -1344,7 +1350,7 @@ def verificar_e_enviar_notificacoes(planilha_handler: PlanilhaHandler,
             logger.error(f"Erro ao salvar snapshot: {e}")
         
         hash_path = Path("/opt/sei-aneel/data/last_hash.txt")
-        current_hash = hash_content([json.dumps(mudancas_detectadas, sort_keys=True)])
+        current_hash = hash_content([json.dumps(snapshot_atual, sort_keys=True)])
         last_hash = hash_path.read_text().strip() if hash_path.exists() else ""
         if current_hash != last_hash or processos_falha:
             enviar_notificacao_email(planilha_handler, mudancas_detectadas, processos_falha, config, logger)
@@ -1365,10 +1371,10 @@ def enviar_notificacao_email(planilha_handler: PlanilhaHandler,
     """Envia email de notificação sobre mudanças detectadas"""
     try:
         smtp_config = config.get('smtp', {})
-        email_config = config.get('email', {})
-        
+        recipients = get_recipients(config, 'sei')
+
         if not all([smtp_config.get('server'), smtp_config.get('user'),
-                   smtp_config.get('password'), email_config.get('recipients')]):
+                   smtp_config.get('password'), recipients]):
             logger.warning("Configurações de email incompletas, pulando envio")
             return
 
@@ -1504,7 +1510,6 @@ def enviar_notificacao_email(planilha_handler: PlanilhaHandler,
         """
         
         # Configura e envia email
-        recipients = [r.strip() for r in email_config.get('recipients', []) if r.strip()]
         if not recipients:
             logger.warning("Nenhum destinatário de email configurado, pulando envio")
             return
@@ -1524,11 +1529,22 @@ def enviar_notificacao_email(planilha_handler: PlanilhaHandler,
         msg.attach(parte_html)
 
         try:
-            xlsx_data = planilha_handler.sheet.spreadsheet.export('xlsx')
-            attach_bytes(msg, xlsx_data, 'processos.xlsx',
-                         'application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            dados = planilha_handler.get_all_values()
+            headers = dados[0] if dados else []
+            rows = []
+            for mudanca in mudancas:
+                dl = mudanca.get('dados_linha', {})
+                rows.append([dl.get(h, '') for h in headers])
+            xlsx_data = create_xlsx(headers, rows)
+            attach_bytes(
+                msg,
+                xlsx_data,
+                'processos.xlsx',
+                'application',
+                'vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
         except Exception as e:
-            logger.warning(f"Falha ao exportar planilha: {e}")
+            logger.warning(f"Falha ao gerar planilha XLSX: {e}")
 
         # Envia email
         server = smtplib.SMTP(smtp_config['server'], smtp_config.get('port', 587))
@@ -1551,13 +1567,13 @@ def enviar_resultados_email(resultados: List[Dict[str, Any]],
     """Envia por email os dados dos processos informados"""
     try:
         smtp_config = config.get('smtp', {})
-        email_config = config.get('email', {})
+        recipients = get_recipients(config, 'sei')
 
         if not all([
             smtp_config.get('server'),
             smtp_config.get('user'),
             smtp_config.get('password'),
-            email_config.get('recipients')
+            recipients
         ]):
             logger.warning("Configurações de email incompletas, pulando envio")
             return
@@ -1709,7 +1725,6 @@ def enviar_resultados_email(resultados: List[Dict[str, Any]],
         </html>
         """
 
-        recipients = [r.strip() for r in email_config.get('recipients', []) if r.strip()]
         if not recipients:
             logger.warning("Nenhum destinatário de email configurado, pulando envio")
             return
@@ -1726,6 +1741,17 @@ def enviar_resultados_email(resultados: List[Dict[str, Any]],
         msg.attach(parte_texto)
         parte_html = MIMEText(corpo_html, 'html', 'utf-8')
         msg.attach(parte_html)
+
+        headers = ['Processo', 'Status', 'Mensagem']
+        rows = [[r.get('processo', ''), r.get('status', ''), r.get('mensagem', '')] for r in resultados]
+        xlsx_data = create_xlsx(headers, rows)
+        attach_bytes(
+            msg,
+            xlsx_data,
+            'processos.xlsx',
+            'application',
+            'vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
 
         server = smtplib.SMTP(smtp_config['server'], smtp_config.get('port', 587))
         server.ehlo()
@@ -1747,13 +1773,13 @@ def enviar_tabela_completa_email(planilha_handler: PlanilhaHandler,
     """Envia por email a tabela completa sem realizar atualização"""
     try:
         smtp_config = config.get('smtp', {})
-        email_config = config.get('email', {})
+        recipients = get_recipients(config, 'sei')
 
         if not all([
             smtp_config.get('server'),
             smtp_config.get('user'),
             smtp_config.get('password'),
-            email_config.get('recipients')
+            recipients
         ]):
             logger.warning("Configurações de email incompletas, pulando envio")
             return
@@ -1820,7 +1846,6 @@ def enviar_tabela_completa_email(planilha_handler: PlanilhaHandler,
         </html>
         """
 
-        recipients = [r.strip() for r in email_config.get('recipients', []) if r.strip()]
         if not recipients:
             logger.warning("Nenhum destinatário de email configurado, pulando envio")
             return
@@ -1838,17 +1863,14 @@ def enviar_tabela_completa_email(planilha_handler: PlanilhaHandler,
         parte_html = MIMEText(corpo_html, 'html', 'utf-8')
         msg.attach(parte_html)
 
-        try:
-            xlsx_data = planilha_handler.sheet.spreadsheet.export('xlsx')
-            attach_bytes(
-                msg,
-                xlsx_data,
-                'processos.xlsx',
-                'application',
-                'vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
-        except Exception as e:
-            logger.warning(f"Falha ao exportar planilha: {e}")
+        xlsx_data = create_xlsx(cabecalho, linhas)
+        attach_bytes(
+            msg,
+            xlsx_data,
+            'processos.xlsx',
+            'application',
+            'vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
 
         server = smtplib.SMTP(smtp_config['server'], smtp_config.get('port', 587))
         server.ehlo()

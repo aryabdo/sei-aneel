@@ -125,7 +125,13 @@ def load_config(path: str | Path | None = None) -> Dict[str, Any]:
     smtp.setdefault("port", 587)
     smtp.setdefault("starttls", False)
 
-    config.setdefault("email", {}).setdefault("recipients", [])
+    email_cfg = config.setdefault("email", {})
+    recipients = email_cfg.setdefault("recipients", {})
+    if isinstance(recipients, list):
+        # Backward compatibility: convert list to dict with all scripts enabled
+        email_cfg["recipients"] = {
+            addr: ["sei", "pauta", "sorteio"] for addr in recipients
+        }
 
     return config
 
