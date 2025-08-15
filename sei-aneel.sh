@@ -81,7 +81,7 @@ install_sei() {
   sudo chown -R "$ACTIVE_USER":"$ACTIVE_USER" "$SCRIPT_DIR"
 
   sudo apt-get update
-  sudo apt-get install -y python3 python3-pip tesseract-ocr chromium-browser chromium-chromedriver
+  sudo apt-get install -y python3 python3-pip tesseract-ocr chromium-browser chromium-chromedriver wkhtmltopdf
   sudo pip3 install --break-system-packages --ignore-installed --no-cache-dir -r "$SCRIPT_DIR/requirements.txt"
 
   STARTTLS=false
@@ -154,7 +154,7 @@ install_pauta() {
   sudo cp -r sei_aneel "$SCRIPT_DIR/" 2>/dev/null
 
   sudo apt-get update
-  sudo apt-get install -y python3 python3-pip
+  sudo apt-get install -y python3 python3-pip wkhtmltopdf
   sudo pip3 install --break-system-packages --ignore-installed --no-cache-dir -r "$PAUTA_DIR/requirements.txt"
 
 cat <<RUN > "$PAUTA_DIR/run.sh"
@@ -239,7 +239,7 @@ install_sorteio() {
   sudo cp -r sei_aneel "$SCRIPT_DIR/" 2>/dev/null
 
   sudo apt-get update
-  sudo apt-get install -y python3 python3-pip
+  sudo apt-get install -y python3 python3-pip wkhtmltopdf
   sudo pip3 install --break-system-packages --ignore-installed --no-cache-dir -r "$SORTEIO_DIR/requirements.txt"
 
 cat <<RUN > "$SORTEIO_DIR/run.sh"
@@ -319,7 +319,7 @@ select_install_menu() {
 
 install_dependencies_only() {
   sudo apt-get update
-  sudo apt-get install -y python3 python3-pip tesseract-ocr chromium-browser chromium-chromedriver
+  sudo apt-get install -y python3 python3-pip tesseract-ocr chromium-browser chromium-chromedriver wkhtmltopdf
   sudo pip3 install --break-system-packages --ignore-installed --no-cache-dir -r requirements.txt
   sudo mkdir -p "$CONFIG_DIR" "$LOG_DIR" "$PAUTA_DIR" "$PAUTA_LOG_DIR" "$SORTEIO_DIR" "$SORTEIO_LOG_DIR"
   sudo touch "$CONFIG_FILE"

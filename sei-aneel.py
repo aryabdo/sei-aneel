@@ -1570,7 +1570,9 @@ def gerar_pdf_html(html_content: str, logger) -> Optional[bytes]:
     """Gera PDF em orientação paisagem a partir de conteúdo HTML."""
     try:
         if not shutil.which("wkhtmltopdf"):
-            logger.warning("wkhtmltopdf não encontrado")
+            logger.warning(
+                "wkhtmltopdf não encontrado. Instale o pacote wkhtmltopdf para gerar PDFs."
+            )
             return None
         env = os.environ.copy()
         env.setdefault("XDG_RUNTIME_DIR", "/tmp")
