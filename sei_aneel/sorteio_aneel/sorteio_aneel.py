@@ -195,6 +195,7 @@ def gerar_pdf_da_pagina(url, pdf_file):
             [
                 "wkhtmltopdf",
                 "--quiet",
+
                 "--orientation",
                 "Portrait",
                 "--print-media-type",
@@ -207,6 +208,7 @@ def gerar_pdf_da_pagina(url, pdf_file):
             stderr=subprocess.PIPE,
             env=env,
         )
+        
         if (
             result.returncode != 0
             or not os.path.exists(pdf_file)
