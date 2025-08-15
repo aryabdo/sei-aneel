@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime
-from typing import Iterable
+from typing import Iterable, Any
 from email.mime.base import MIMEBase
 from email import encoders
 
@@ -133,3 +133,35 @@ def create_xlsx(headers: list[str], rows: list[list[str]]) -> bytes:
         zf.writestr('xl/worksheets/sheet1.xml', sheet_xml)
 
     return buffer.getvalue()
+
+
+def get_recipients(config: Any, script: str) -> list[str]:
+    """Return list of emails configured for a given script.
+
+    Parameters
+    ----------
+    config:
+        Configuration dictionary or object with ``get`` method.
+    script:
+        Identifier of the script (e.g. ``"sei"``, ``"pauta"``).
+    """
+
+    recipients = None
+
+    try:
+        # ``ConfigManager`` uses dotted notation
+        recipients = config.get("email.recipients")
+    except Exception:  # pragma: no cover - be tolerant to unexpected objects
+        pass
+
+    if recipients is None:
+        try:
+            recipients = config.get("email", {}).get("recipients", {})
+        except Exception:  # pragma: no cover
+            recipients = {}
+
+    if isinstance(recipients, dict):
+        return [email for email, scripts in recipients.items() if script in scripts]
+    elif isinstance(recipients, list):  # backward compatibility
+        return recipients
+    return []

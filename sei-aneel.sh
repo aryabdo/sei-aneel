@@ -88,7 +88,7 @@ install_sei() {
   [[ "${SMTP_TLS,,}" == "y" ]] && STARTTLS=true
 
   IFS=',' read -ra ADDR <<< "$EMAILS"
-  EMAIL_JSON=$(printf '"%s",' "${ADDR[@]}")
+  EMAIL_JSON=$(printf '"%s": [\"sei\",\"pauta\",\"sorteio\"],' "${ADDR[@]}")
   EMAIL_JSON="${EMAIL_JSON%,}"
 
   cat <<CFG > "$CONFIG_FILE"
@@ -106,7 +106,7 @@ install_sei() {
     "sheet_name": "Processos ANEEL",
     "worksheet_name": "Processos"
   },
-  "email": {"recipients": [$EMAIL_JSON]},
+  "email": {"recipients": {${EMAIL_JSON}}},
   "paths": {
     "tesseract": "/usr/bin/tesseract",
     "chromedriver": "/usr/bin/chromedriver",
@@ -448,13 +448,19 @@ PY
 
 add_email() {
   read -p "Email para adicionar: " EM
-  python3 - "$CONFIG_FILE" "$EM" <<'PY'
+  read -p "Scripts (sei,pauta,sorteio ou todos): " SC
+  python3 - "$CONFIG_FILE" "$EM" "$SC" <<'PY'
 import json,sys
-path,email=sys.argv[1:3]
+path,email,scripts=sys.argv[1:4]
 with open(path) as f: data=json.load(f)
-rec=data.setdefault('email',{}).setdefault('recipients',[])
-if email not in rec:
-    rec.append(email)
+rec=data.setdefault('email',{}).setdefault('recipients',{})
+if isinstance(rec,list):
+    rec={e:["sei","pauta","sorteio"] for e in rec}
+    data['email']['recipients']=rec
+if scripts.strip().lower() in ('','todos','all'):
+    rec[email]=["sei","pauta","sorteio"]
+else:
+    rec[email]=[s.strip() for s in scripts.split(',') if s.strip()]
 with open(path,'w') as f: json.dump(data,f,indent=2)
 PY
 }
@@ -465,9 +471,11 @@ remove_email() {
 import json,sys
 path,email=sys.argv[1:3]
 with open(path) as f: data=json.load(f)
-rec=data.setdefault('email',{}).setdefault('recipients',[])
-if email in rec:
-    rec.remove(email)
+rec=data.setdefault('email',{}).setdefault('recipients',{})
+if isinstance(rec,list):
+    rec={e:["sei","pauta","sorteio"] for e in rec}
+    data['email']['recipients']=rec
+rec.pop(email,None)
 with open(path,'w') as f: json.dump(data,f,indent=2)
 PY
 }
@@ -477,8 +485,13 @@ list_emails() {
 import json,sys
 path=sys.argv[1]
 with open(path) as f: data=json.load(f)
-for e in data.get('email',{}).get('recipients',[]):
-    print(e)
+rec=data.get('email',{}).get('recipients',{})
+if isinstance(rec,dict):
+    for e,mods in rec.items():
+        print(f"{e}: {', '.join(mods)}")
+else:
+    for e in rec:
+        print(e)
 PY
 }
 

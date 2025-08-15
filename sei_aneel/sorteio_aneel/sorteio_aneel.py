@@ -21,7 +21,12 @@ import sys
 
 try:
     from ..config import load_config, load_search_terms
-    from ..email_utils import format_html_email, attach_bytes, create_xlsx
+    from ..email_utils import (
+        format_html_email,
+        attach_bytes,
+        create_xlsx,
+        get_recipients,
+    )
     from ..log_utils import get_logger
 except ImportError:  # pragma: no cover - allow direct execution
     from pathlib import Path
@@ -29,7 +34,12 @@ except ImportError:  # pragma: no cover - allow direct execution
     # Allow running the script directly by adding the project root to ``sys.path``
     sys.path.append(str(Path(__file__).resolve().parents[2]))
     from sei_aneel.config import load_config, load_search_terms
-    from sei_aneel.email_utils import format_html_email, attach_bytes, create_xlsx
+    from sei_aneel.email_utils import (
+        format_html_email,
+        attach_bytes,
+        create_xlsx,
+        get_recipients,
+    )
     from sei_aneel.log_utils import get_logger
 
 # Diretório de dados e arquivos de log
@@ -53,7 +63,8 @@ SMTP_SERVER = SMTP_CONF.get("server", "")
 SMTP_PORT = SMTP_CONF.get("port", 587)
 SMTP_USER = SMTP_CONF.get("user", "")
 SMTP_PASSWORD = SMTP_CONF.get("password", "")
-EMAIL_TO = ",".join(CONFIG.get("email", {}).get("recipients", []))
+RECIPIENTS = get_recipients(CONFIG, "sorteio")
+EMAIL_TO = ",".join(RECIPIENTS)
 
 BASE_URL = "https://www2.aneel.gov.br/aplicacoes_liferay/noticias_area/?idAreaNoticia=424"
 SITE_PREFIX = "https://www2.aneel.gov.br"
@@ -201,11 +212,11 @@ def gerar_pdf_da_pagina(url, pdf_file):
 def send_email(subject, body_plain, body_html, pdf_path=None, xlsx_bytes=None):
     msg = MIMEMultipart()
     msg["From"] = SMTP_USER
-    destinatarios = [e.strip() for e in EMAIL_TO.replace(';', ',').split(',') if e.strip()]
+    destinatarios = RECIPIENTS
     msg["To"] = ", ".join(destinatarios)
     msg["Subject"] = subject
     pdf_attached = False
-    if pdf_path and os.path.exists(pdf_path) and os.path.getsize(pdf_path) > 0:
+    if pdf_path and os.path.exists(pdf_path):
         from email.mime.base import MIMEBase
         from email import encoders
         with open(pdf_path, "rb") as f:
@@ -216,7 +227,7 @@ def send_email(subject, body_plain, body_html, pdf_path=None, xlsx_bytes=None):
             msg.attach(part)
             pdf_attached = True
     else:
-        registrar_log("PDF não gerado ou está vazio, não será anexado.")
+        registrar_log("PDF não gerado, não será anexado.")
         aviso = (
             "\n\nATENÇÃO: Não foi possível anexar o PDF da página, pois ocorreu um erro na geração do arquivo.\n"
         )
