@@ -1596,6 +1596,9 @@ def gerar_pdf_html(html_content: str, logger) -> Optional[bytes]:
                 f"Falha ao gerar PDF (wkhtmltopdf): {result.stderr.decode()}"
             )
             return None
+        if not result.stdout.startswith(b"%PDF"):
+            logger.warning("Conteúdo retornado não é um PDF válido")
+            return None
         return result.stdout
     except Exception as e:
         logger.warning(f"Erro ao gerar PDF: {e}")

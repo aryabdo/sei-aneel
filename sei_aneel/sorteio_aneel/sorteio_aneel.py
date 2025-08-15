@@ -195,6 +195,9 @@ def gerar_pdf_da_pagina(url, pdf_file):
             [
                 "wkhtmltopdf",
                 "--quiet",
+
+                "--orientation",
+                "Portrait",
                 "--print-media-type",
                 "--load-error-handling",
                 "ignore",
@@ -205,9 +208,20 @@ def gerar_pdf_da_pagina(url, pdf_file):
             stderr=subprocess.PIPE,
             env=env,
         )
-        if result.returncode != 0 or not os.path.exists(pdf_file) or os.path.getsize(pdf_file) == 0:
-            registrar_log(f"Erro ao gerar PDF (wkhtmltopdf): {result.stderr.decode()}")
+        
+        if (
+            result.returncode != 0
+            or not os.path.exists(pdf_file)
+            or os.path.getsize(pdf_file) == 0
+        ):
+            registrar_log(
+                f"Erro ao gerar PDF (wkhtmltopdf): {result.stderr.decode()}"
+            )
             return False
+        with open(pdf_file, "rb") as f:
+            if not f.read(4).startswith(b"%PDF"):
+                registrar_log("Arquivo PDF inválido gerado")
+                return False
         return True
     except Exception as e:
         registrar_log(f"Erro ao gerar PDF: {e}")
