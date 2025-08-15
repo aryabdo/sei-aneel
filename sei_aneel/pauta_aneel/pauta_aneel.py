@@ -229,12 +229,20 @@ def gerar_pdf_da_pagina(url, pdf_file):
         env = os.environ.copy()
         env.setdefault("XDG_RUNTIME_DIR", "/tmp")
         result = subprocess.run(
-            ["wkhtmltopdf", "--quiet", "--load-error-handling", "ignore", url, pdf_file],
+            [
+                "wkhtmltopdf",
+                "--quiet",
+                "--print-media-type",
+                "--load-error-handling",
+                "ignore",
+                url,
+                pdf_file,
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            env=env
+            env=env,
         )
-        if result.returncode != 0:
+        if result.returncode != 0 or not os.path.exists(pdf_file) or os.path.getsize(pdf_file) == 0:
             logger.error("Erro ao gerar PDF (wkhtmltopdf): %s", result.stderr.decode())
             registrar_log(f"Erro ao gerar PDF (wkhtmltopdf): {result.stderr.decode()}")
             return False
